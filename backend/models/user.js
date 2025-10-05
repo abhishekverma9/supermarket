@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 const User = {
   // Create a new consumer
-  create: async ({ name, email, password, phone, house_no, street, building_or_flat }) => {
+  create: async ({ name, email, password, phone, house_no, street, building }) => {
     // Check if email exists
     const [existing] = await db.query('SELECT * FROM Consumers WHERE email = ?', [email]);
     if (existing.length > 0) return null;

@@ -1,54 +1,60 @@
-import User from '../models/User.js';
-import { generateToken } from '../utils/generateToken.js';
+import { db } from "../config/db.js";
+import imagekit from "../config/imageKit.js";
 
-// Signup for consumers
-export const signup = async (req, res) => {
+// Get consumer profile
+const getProfile = async (req, res) => {
   try {
-    const { name, email, password, phone, house_no, street, building_or_flat } = req.body;
+    const userId = req.userId;
+    const [rows] = await db().query("SELECT consumer_id, first_name, last_name, email, phone, loyalty_points, house_no, street, building, profile_photo FROM consumers WHERE consumer_id = ?", [userId]);
 
-    const userId = await User.create({ name, email, password, phone, house_no, street, building_or_flat });
-    if (!userId) return res.status(400).json({ message: 'Email already exists' });
-
-    // Generate JWT token
-    const token = generateToken({ userId, email });
-
-    res.status(201).json({
-      message: 'Consumer registered successfully',
-      userId,
-      token
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    if (rows.length === 0) {
+      return res.json({ success: false, message: "User not found" });
+    }
+    res.json({ success: true, user: rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
   }
 };
 
-// Login for consumers
-export const login = async (req, res) => {
+// Update consumer profile
+const updateProfile = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const userId = req.userId;
+    const { first_name, last_name, phone, house_no, street, building } = req.body;
 
-    const user = await User.findByEmail(email);
-    if (!user) return res.status(400).json({ message: 'Invalid email or password' });
+    const [existing] = await db().query("SELECT * FROM consumers WHERE consumer_id = ?", [userId]);
+    if (existing.length === 0) {
+      return res.json({ success: false, message: "User not found" });
+    }
 
-    const isMatch = await User.comparePassword(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid email or password' });
-
-    // Generate JWT token
-    const token = generateToken({ userId: user.consumer_id, email });
-
-    res.json({
-      message: 'Login successful',
-      user: {
-        id: user.consumer_id,
-        name: user.first_name,
-        email: user.email,
-        phone: user.phone
-      },
-      token
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    let profilePhotoUrl = existing[0].profile_photo;
+    if (req.file) {
+      const result = await imagekit.upload({
+        file: req.file.buffer,
+        fileName: req.file.originalname,
+        folder: "/profile_photos"
+      });
+      profilePhotoUrl = result.url;
+    }
+    await db().query(
+      `UPDATE consumers SET first_name=?, last_name=?, phone=?, house_no=?, street=?, building_or_flat=?, profile_photo=? WHERE consumer_id=?`,
+      [
+        first_name || existing[0].first_name,
+        last_name || existing[0].last_name,
+        phone || existing[0].phone,
+        house_no || existing[0].house_no,
+        street || existing[0].street,
+        building || existing[0].building,
+        profilePhotoUrl,
+        userId
+      ]
+    );
+    res.json({success: true,message: "Profile updated successfully",profile_photo: profilePhotoUrl})
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export { getProfile, updateProfile };
