@@ -14,11 +14,8 @@ const signupConsumer = async (req, res) => {
     }
 
     // Check if consumer already exists
-    const [existingConsumer] = await db().query(
-      "SELECT * FROM consumers WHERE email = ?",
-      [email]
-    );
-    if (existingConsumer.length > 0) {
+    const result = await db().query("SELECT * FROM consumers WHERE email = $1", [email]);
+    if (result.rows.length > 0) {
       return res.json({ success: false, message: "User already exists" });
     }
 
@@ -26,22 +23,25 @@ const signupConsumer = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new consumer
-    const [result] = await db().query(
+    const insertResult = await db().query(
       `INSERT INTO consumers (first_name, last_name, email, phone, password)
-       VALUES (?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING consumer_id`,
       [first_name, last_name, email, phone || "", hashedPassword]
     );
 
-    const token = generateToken({ id: result.insertId, role: "consumer" });
+    const consumerId = insertResult.rows[0].consumer_id;
+
+    const token = generateToken({ id: consumerId, role: "consumer" });
 
     return res.json({
       success: true,
       message: "Account created successfully",
-      consumer_id: result.insertId,
+      consumer_id: consumerId,
       token,
     });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Signup Error:", error);
     return res.json({ success: false, message: error.message });
   }
 };
@@ -52,13 +52,12 @@ const signupConsumer = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password, role } = req.body;
+
     if (!email || !password || !role) {
       return res.json({ success: false, message: "Email, password, and role are required" });
     }
 
-    let tableName;
-    let idField;
-    let nameField;
+    let tableName, idField, nameField;
 
     if (role === "owner" || role === "employee") {
       tableName = "employee";
@@ -73,29 +72,29 @@ const login = async (req, res) => {
     }
 
     // Query user
-    const [rows] = await db().query(`SELECT * FROM ${tableName} WHERE email = ?`, [email]);
-    if (rows.length === 0) {
+    const result = await db().query(`SELECT * FROM ${tableName} WHERE email = $1`, [email]);
+    if (result.rows.length === 0) {
       return res.json({ success: false, message: "User does not exist" });
     }
 
-    const user = rows[0];
+    const user = result.rows[0];
 
     // Check role for employee/owner
     if (tableName === "employee") {
       if (role === "owner" && user.role.toLowerCase() !== "admin") {
         return res.json({ success: false, message: "Not an Owner" });
       }
-      if (role === "employee" && user.role.toLowerCase() !== "employee" && user.role.toLowerCase() !== "manager") {
+      if (
+        role === "employee" &&
+        user.role.toLowerCase() !== "employee" &&
+        user.role.toLowerCase() !== "manager"
+      ) {
         return res.json({ success: false, message: "Not an Employee" });
       }
-
     }
 
     // Check password
-    // For consumer, you might still want bcrypt.compare
-    // const valid = await bcrypt.compare(password, user.password)
-    const valid = password === user.password ? true : false
-
+    const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       return res.json({ success: false, message: "Invalid credentials" });
     }
@@ -112,7 +111,7 @@ const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Login Error:", error);
     return res.json({ success: false, message: error.message });
   }
 };

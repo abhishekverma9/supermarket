@@ -45,7 +45,6 @@ const Dashboard = () => {
       deleteProduct(product_id);
     }
   };
-
   return (
     <div className="text-white p-6">
       <h2 className="text-2xl font-bold mb-4">Products Management</h2>
@@ -57,11 +56,12 @@ const Dashboard = () => {
               <th className="px-4 py-2">Image</th>
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Description</th>
-              <th className="px-4 py-2">Price (₹)</th>
+              <th className="px-4 py-2">Price</th>
               <th className="px-4 py-2">Category</th>
               <th className="px-4 py-2">Stock</th>
               <th className="px-4 py-2">Exp. Date</th>
-              <th className="px-4 py-2">Discount (%)</th>
+              <th className="px-4 py-2">Discount</th>
+              <th className="px-4 py-2">Desc.</th>
               <th className="px-4 py-2">Actions</th>
             </tr>
           </thead>
@@ -91,7 +91,7 @@ const Dashboard = () => {
                       />
                     ) : (
                       p.price
-                    )}
+                    )}₹
                   </td>
                   <td className="px-4 py-2">{p.category}</td>
                   <td className="px-4 py-2">
@@ -109,7 +109,8 @@ const Dashboard = () => {
                     )}
                   </td>
                   <td className="px-4 py-2">{formatDate(p.exp_date)}</td>
-                  <td className="px-4 py-2">{p.discount_value}</td> {/* Always read-only */}
+                  <td className="px-4 py-2">{p.discount_value ? p.discount_value : 0}%</td> {/* Always read-only */}
+                  <td className="px-4 py-2">{p.discount_desc ? p.discount_desc : "-"}</td> {/* Always read-only */}
                   <td className="px-4 py-2 flex gap-2">
                     {isEdit ? (
                       <div

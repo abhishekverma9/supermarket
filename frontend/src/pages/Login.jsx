@@ -5,41 +5,45 @@ import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 
 const LoginPage = () => {
-  const [mode, setMode] = useState("login"); 
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [phone, setPhone] = useState("");
   const navigate = useNavigate();
-  const {token,setToken,backendUrl,role,setRole} = useContext(AuthContext)
+  const { token, setToken, backendUrl, role, setRole } = useContext(AuthContext)
 
-  const handleSubmit = async(e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault(); // prevent page reload
+    setIsSubmitting(true)
     try {
-      if(mode === 'signup'){
-        const {data} = await axios.post(backendUrl + '/api/auth/signup',{first_name:firstName,last_name:lastName,email,password,phone})
-        if(data.success){
+      if (mode === 'signup') {
+        const { data } = await axios.post(backendUrl + '/api/auth/signup', { first_name: firstName, last_name: lastName, email, password, phone })
+        if (data.success) {
           setToken(data.token)
-          localStorage.setItem("role",role)
-          localStorage.setItem("token",data.token)
+          localStorage.setItem("role", role)
+          localStorage.setItem("token", data.token)
           navigate('/consumer')
-        }else{
+        } else {
           toast.error(data.message)
-        }  
-      }else{
-        const {data} = await axios.post(backendUrl + '/api/auth/login',{email,password,role})
-        if(data.success){
+        }
+      } else {
+        const { data } = await axios.post(backendUrl + '/api/auth/login', { email, password, role })
+        if (data.success) {
           setToken(data.token)
-          localStorage.setItem("token",data.token)
-          localStorage.setItem("role",role)
+          localStorage.setItem("token", data.token)
+          localStorage.setItem("role", role)
           navigate(`/${role}`)
-        }else{
+        } else {
           toast.error(data.message)
         }
       }
     } catch (error) {
       toast.error(error.message)
+    } finally {
+      setIsSubmitting(false)
     }
   };
 
@@ -118,9 +122,9 @@ const LoginPage = () => {
             className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-100" required
           />
 
-          <button
+          <button disabled={isSubmitting}
             type="submit"
-            className="w-full px-4 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+            className={`w-full px-4 py-3 rounded-lg bg-amber-600 ${isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:bg-amber-700"} text-white font-semibold`}
           >
             {mode === "signup" ? "Sign Up as Consumer" : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
           </button>
@@ -132,25 +136,36 @@ const LoginPage = () => {
             {mode === "login" ? (
               <>
                 Don’t have an account?{" "}
-                <button type="button" onClick={() => setMode("signup")} className="text-amber-600 font-medium">
+                <button
+                  type="button"
+                  onClick={() => setMode("signup")}
+                  disabled={isSubmitting}
+                  className={`text-amber-600 font-medium transition ${isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:underline"
+                    }`}
+                >
                   Sign Up
                 </button>
               </>
             ) : (
               <>
                 Already have an account?{" "}
-                <button type="button" onClick={() => setMode("login")} className="text-amber-600 font-medium">
+                <button
+                  type="button"
+                  onClick={() => setMode("login")}
+                  disabled={isSubmitting}
+                  className={`text-amber-600 font-medium transition ${isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:underline"
+                    }`}
+                >
                   Login
                 </button>
               </>
             )}
           </p>
         )}
-
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="mt-4 w-full px-4 py-3 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-gray-100"
+          className={`mt-4 w-full px-4 py-3 rounded-lg ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""} bg-white/60 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-gray-100`}
         >
           Back
         </button>

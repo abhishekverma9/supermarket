@@ -1,27 +1,36 @@
-import mysql from "mysql2/promise";
+import pkg from "pg";
+import dotenv from "dotenv";
+dotenv.config();
+
+const { Pool } = pkg;
 
 let pool;
+
 export const connectDB = async () => {
   try {
-    pool = mysql.createPool({
-      host: process.env.DB_HOST || "localhost",
-      user: process.env.DB_USER || "root",
-      password: process.env.DB_PASSWORD || "",
-      database: process.env.DB_NAME || "supermarket",
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-    });
+    if (!pool) {
+      pool = new Pool({
+        connectionString: process.env.DATABASE_URL, // Supabase Transaction Pooler URL
+        ssl: { rejectUnauthorized: false },        // Accept self-signed cert
+        max: 10,
+      });
 
-    // Test connection
-    const conn = await pool.getConnection();
-    console.log("✅ MySQL Connected!");
-    conn.release();
+      // Test connection
+      const client = await pool.connect();
+      console.log("✅ PostgreSQL (Supabase) Connected!");
+      client.release();
+
+      // Handle unexpected errors
+      pool.on("error", (err) => {
+        console.error("❌ Unexpected PostgreSQL error:", err);
+        process.exit(-1);
+      });
+    }
   } catch (err) {
-    console.error("❌ MySQL Connection Error:", err);
-    process.exit(1); // Stop server if DB connection fails
+    console.error("❌ PostgreSQL Connection Error:", err);
+    process.exit(1);
   }
 };
 
-// Export pool for models
+// Function to get the pool in other files
 export const db = () => pool;

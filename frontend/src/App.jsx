@@ -22,7 +22,7 @@ import OwnerOrders from './pages/owner/Orders'
 
 const App = () => {
   return (
-    <div className='bg-gradient-to-r from-indigo-800 via-purple-800 to-gray-800 animate-gradient-x'>
+    <div className='bg-gradient-to-r from-indigo-900 via-purple-800 to-gray-900 animate-gradient-x'>
       <ToastContainer/>
       <Routes>
         <Route path='/' element={<Home />} />
