@@ -126,12 +126,18 @@ export const AuthContextProvider = ({ children }) => {
         try {
             const { data } = await axios.get(backendUrl + '/api/product/products', { headers: { token } })
             if (data.success) {
-                setProducts(data.products)
+                setProducts(data.products || [])
             } else {
-                toast.error(data.message)
+                // Even if success is false, set empty array to avoid showing stale data
+                setProducts([])
+                if (data.message && data.message !== "No products found") {
+                    toast.error(data.message)
+                }
             }
         } catch (error) {
-            toast.error(error.message)
+            console.error("Error fetching products:", error)
+            setProducts([])
+            toast.error(error.response?.data?.message || error.message || "Failed to fetch products")
         }
     }
     const fetchOrders = async () => {
