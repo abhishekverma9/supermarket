@@ -15,7 +15,7 @@ const signupConsumer = async (req, res) => {
 
     // Check if consumer already exists
     const [existingConsumer] = await db().query(
-      "SELECT * FROM consumers WHERE email = ?",
+      "SELECT * FROM Consumers WHERE email = ?",
       [email]
     );
     if (existingConsumer.length > 0) {
@@ -27,7 +27,7 @@ const signupConsumer = async (req, res) => {
 
     // Insert new consumer
     const [result] = await db().query(
-      `INSERT INTO consumers (first_name, last_name, email, phone, password)
+      `INSERT INTO Consumers (first_name, last_name, email, phone, password)
        VALUES (?, ?, ?, ?, ?)`,
       [first_name, last_name, email, phone || "", hashedPassword]
     );
@@ -61,11 +61,11 @@ const login = async (req, res) => {
     let nameField;
 
     if (role === "owner" || role === "employee") {
-      tableName = "employee";
+      tableName = "Employee";
       idField = "employee_id";
       nameField = "first_name";
     } else if (role === "consumer") {
-      tableName = "consumers";
+      tableName = "Consumers";
       idField = "consumer_id";
       nameField = "first_name";
     } else {
@@ -81,7 +81,7 @@ const login = async (req, res) => {
     const user = rows[0];
 
     // Check role for employee/owner
-    if (tableName === "employee") {
+    if (tableName === "Employee") {
       if (role === "owner" && user.role.toLowerCase() !== "admin") {
         return res.json({ success: false, message: "Not an Owner" });
       }
