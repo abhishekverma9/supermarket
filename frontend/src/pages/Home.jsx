@@ -7,7 +7,7 @@ const Home = () => {
     <div className="w-full min-h-screen flex flex-col items-center justify-center gap-12 py-12 px-4">
       <div className="flex flex-col gap-4 items-center">
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 animate-gradient-x">
-          Nexus Platform
+          Nexus Platformmmmm
         </h1>
         <p className="max-w-xl text-lg md:text-xl text-gray-600 dark:text-gray-300 text-center">
           Login to continue.

@@ -93,8 +93,8 @@ const login = async (req, res) => {
 
     // Check password
     // For consumer, you might still want bcrypt.compare
-    // const valid = await bcrypt.compare(password, user.password)
-    const valid = password === user.password ? true : false
+    const valid = await bcrypt.compare(password, user.password)
+    // const valid = password === user.password ? true : false
 
     if (!valid) {
       return res.json({ success: false, message: "Invalid credentials" });
