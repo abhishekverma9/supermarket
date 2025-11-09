@@ -5,7 +5,7 @@ const OrdersPage = () => {
   const { orders } = useContext(AuthContext);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen text-white bg-gray-50 dark:bg-gray-900 p-6">
       <h2 className="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100">
         Your Orders
       </h2>

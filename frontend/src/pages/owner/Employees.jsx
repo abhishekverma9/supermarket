@@ -240,7 +240,7 @@ const OwnerEmployees = () => {
                 <td className="px-4 py-2">
                   {emp.profile_photo ? (
                     <img
-                      src={`${backendUrl}/uploads/${emp.profile_photo}`}
+                      src={emp.profile_photo}
                       className="h-10 w-10 rounded-full"
                       alt={emp.first_name}
                     />
