@@ -14,7 +14,7 @@ const getAllEmployees = async (req, res) => {
                 email,
                 manager_id,
                 profile_photo
-            FROM Employee where role != "admin"
+            FROM Employee where role != 'Admin'
         `);
         res.json({ success: true, employees: rows });
     } catch (error) {
@@ -161,14 +161,14 @@ const getDashboardStats = async (req, res) => {
     if(!adminId){
         return res.json({success:false,message:"Not Authorized"})
     }
-    const [totalOrders] = await db().query("SELECT COUNT(*) AS count FROM orders WHERE status != 'Cancelled'");
-    const [pendingOrders] = await db().query("SELECT COUNT(*) AS count FROM orders WHERE status = 'Pending'");
-    const [totalRevenue] = await db().query("SELECT COALESCE(SUM(total_amount),0) AS amount FROM orders WHERE status = 'Delivered'");
-    const [lowStockProducts] = await db().query("SELECT COUNT(*) AS count FROM product WHERE stock_quantity < 5");
-    const [totalProducts] = await db().query("SELECT COUNT(*) AS count FROM product");
-    const [totalEmployees] = await db().query("SELECT COUNT(*) AS count FROM employee");
-    const [totalSalary] = await db().query("SELECT COALESCE(SUM(salary),0) AS amount FROM employee");
-    const [totalCustomers] = await db().query("SELECT COUNT(*) AS count FROM consumers");
+    const [totalOrders] = await db().query("SELECT COUNT(*) AS count FROM Orders WHERE status != 'Cancelled'");
+    const [pendingOrders] = await db().query("SELECT COUNT(*) AS count FROM Orders WHERE status = 'Pending'");
+    const [totalRevenue] = await db().query("SELECT COALESCE(SUM(total_amount),0) AS amount FROM Orders WHERE status = 'Delivered'");
+    const [lowStockProducts] = await db().query("SELECT COUNT(*) AS count FROM Product WHERE stock_quantity < 5");
+    const [totalProducts] = await db().query("SELECT COUNT(*) AS count FROM Product");
+    const [totalEmployees] = await db().query("SELECT COUNT(*) AS count FROM Employee");
+    const [totalSalary] = await db().query("SELECT COALESCE(SUM(salary),0) AS amount FROM Employee");
+    const [totalCustomers] = await db().query("SELECT COUNT(*) AS count FROM Consumers");
 
     res.json({
       success: true,

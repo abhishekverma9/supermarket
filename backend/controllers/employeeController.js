@@ -19,7 +19,7 @@ const getAllOrders = async (req, res) => {
     const orderIds = orders.map(o => o.order_id);
     const [orderItems] = await db().query(`
       SELECT oi.order_id, p.name AS product_name, oi.quantity, oi.price
-      FROM order_items oi
+      FROM Order_items oi
       JOIN Product p ON oi.product_id = p.product_id
       WHERE oi.order_id IN (?)
     `, [orderIds]);
@@ -78,7 +78,7 @@ const getEmpProfile = async (req, res) => {
     }
     const [rows] = await db().query(
       `SELECT employee_id, first_name, last_name, phone, email, role, profile_photo,created_at
-       FROM employee 
+       FROM Employee 
        WHERE employee_id = ?`,
       [employeeId]
     );

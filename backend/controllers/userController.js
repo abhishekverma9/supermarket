@@ -5,7 +5,7 @@ import imagekit from "../config/imageKit.js";
 const getProfile = async (req, res) => {
   try {
     const userId = req.userId;
-    const [rows] = await db().query("SELECT consumer_id, first_name, last_name, email, phone, loyalty_points, house_no, street, building, profile_photo FROM consumers WHERE consumer_id = ?", [userId]);
+    const [rows] = await db().query("SELECT consumer_id, first_name, last_name, email, phone, loyalty_points, house_no, street, building, profile_photo FROM Consumers WHERE consumer_id = ?", [userId]);
 
     if (rows.length === 0) {
       return res.json({ success: false, message: "User not found" });

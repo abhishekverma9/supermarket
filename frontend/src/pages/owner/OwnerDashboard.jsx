@@ -2,6 +2,28 @@ import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { motion } from "framer-motion";
+import {
+  FaShoppingCart,
+  FaClock,
+  FaRupeeSign,
+  FaExclamationTriangle,
+  FaBoxes,
+  FaUsers,
+  FaUserTie,
+  FaWallet,
+} from "react-icons/fa";
+
+const iconMap = {
+  "Total Orders": <FaShoppingCart size={26} />,
+  "Pending Orders": <FaClock size={26} />,
+  "Total Revenue": <FaRupeeSign size={26} />,
+  "Low Stock Products": <FaExclamationTriangle size={26} />,
+  "Total Products": <FaBoxes size={26} />,
+  "Total Employees": <FaUserTie size={26} />,
+  "Total Salary of Employees": <FaWallet size={26} />,
+  "Total Customers": <FaUsers size={26} />,
+};
 
 const OwnerDashboard = () => {
   const { backendUrl, token, role } = useContext(AuthContext);
@@ -14,7 +36,6 @@ const OwnerDashboard = () => {
       });
 
       if (data.success) {
-        // Convert stats object into array for easier rendering
         const arr = [
           { title: "Total Orders", value: data.stats.totalOrders },
           { title: "Pending Orders", value: data.stats.pendingOrders },
@@ -41,26 +62,57 @@ const OwnerDashboard = () => {
   }, [token, role]);
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 drop-shadow-sm">
+    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-8">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7 }}
+        className="mb-10 text-center"
+      >
+        <h2 className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C00] via-[#FF4B91] to-[#8A2BE2] drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
           Owner Dashboard
         </h2>
-        <p className="text-gray-400 mt-1">Business overview at a glance</p>
-      </div>
+        <p className="text-gray-400 mt-2 text-lg">
+          Comprehensive business insights at a glance
+        </p>
+      </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      {/* Stats Grid */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+      >
         {stats.map((s, idx) => (
-          <div
+          <motion.div
             key={idx}
-            className="relative overflow-hidden rounded-2xl p-5 bg-white dark:bg-gray-800 shadow-lg ring-1 ring-amber-500/10 hover:shadow-xl transition-shadow"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1 }}
+            whileHover={{ scale: 1.05, y: -5 }}
+            className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-[#1C1C1C] to-[#2E2E2E] border border-[#FF8C00]/30 shadow-[0_0_15px_rgba(255,140,0,0.2)] hover:shadow-[0_0_25px_rgba(255,140,0,0.5)] transition-all"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/10 pointer-events-none" />
-            <p className="text-gray-600 dark:text-gray-300 text-sm">{s.title}</p>
-            <p className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{s.value}</p>
-          </div>
+            {/* Glow background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#FF8C00]/10 to-[#8A2BE2]/10 pointer-events-none" />
+
+            {/* Icon */}
+            <div className="flex items-center justify-between relative z-10">
+              <div className="p-3 rounded-xl bg-[#FF8C00]/10 border border-[#FF8C00]/30 text-[#FF8C00] shadow-[0_0_10px_rgba(255,140,0,0.3)]">
+                {iconMap[s.title]}
+              </div>
+
+              <div className="text-right">
+                <p className="text-gray-400 text-sm font-medium">{s.title}</p>
+                <p className="text-2xl font-bold mt-1 text-[#F5F5F5]">
+                  {s.value}
+                </p>
+              </div>
+            </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 };
