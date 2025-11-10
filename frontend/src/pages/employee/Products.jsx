@@ -56,22 +56,24 @@ const AddProduct = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto mt-8 p-6 text-white dark:bg-slate-900/50 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-lg">
-      <h2 className="text-2xl font-bold mb-6 text-center">Add New Product</h2>
+    <div className="max-w-2xl mx-auto mt-8 p-6 rounded-2xl shadow-xl bg-white/70 dark:bg-slate-900/50 border border-amber-500/20 backdrop-blur-md">
+      <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 text-center mb-6">
+        Add New Product
+      </h2>
       <form className="space-y-4" onSubmit={handleSubmit}>
         <input
           type="text"
           placeholder="Product Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full px-4 py-3 border rounded-lg"
+          className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-amber-500/30 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 outline-none"
           required
         />
         <textarea
           placeholder="Description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full px-4 py-3 border rounded-lg"
+          className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-amber-500/30 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 outline-none"
           required
         />
         <input
@@ -79,7 +81,7 @@ const AddProduct = () => {
           placeholder="Category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="w-full px-4 py-3 border rounded-lg"
+          className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-amber-500/30 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 outline-none"
           required
         />
         <input
@@ -87,7 +89,7 @@ const AddProduct = () => {
           placeholder="Price"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          className="w-full px-4 py-3 border rounded-lg"
+          className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-amber-500/30 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 outline-none"
           required
         />
         <input
@@ -95,7 +97,7 @@ const AddProduct = () => {
           placeholder="Stock Quantity"
           value={stockQuantity}
           onChange={(e) => setStockQuantity(e.target.value)}
-          className="w-full px-4 py-3 border rounded-lg"
+          className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-amber-500/30 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 outline-none"
           required
         />
         <input
@@ -103,17 +105,17 @@ const AddProduct = () => {
           placeholder="Expiry Date"
           value={expDate}
           onChange={(e) => setExpDate(e.target.value)}
-          className="w-full px-4 py-3 border rounded-lg"
+          className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-amber-500/30 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 outline-none"
         />
         <input
           type="file"
           onChange={(e) => setImage(e.target.files[0])}
-          className="w-full px-4 py-2 border rounded-lg"
+          className="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-slate-800 border border-amber-500/30 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 outline-none"
         />
 
         <button
           type="submit"
-          className={`w-full py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-semibold ${
+          className={`w-full py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-semibold shadow-md transition-transform hover:scale-[1.01] ${
             loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
           disabled={loading} // ✅ Disable button while uploading

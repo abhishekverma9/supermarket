@@ -41,16 +41,23 @@ const OwnerDashboard = () => {
   }, [token, role]);
 
   return (
-    <div className="p-6 text-white">
-      <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="p-6">
+      <div className="mb-6">
+        <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 drop-shadow-sm">
+          Owner Dashboard
+        </h2>
+        <p className="text-gray-400 mt-1">Business overview at a glance</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {stats.map((s, idx) => (
           <div
             key={idx}
-            className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow text-gray-800 dark:text-white"
+            className="relative overflow-hidden rounded-2xl p-5 bg-white dark:bg-gray-800 shadow-lg ring-1 ring-amber-500/10 hover:shadow-xl transition-shadow"
           >
-            <p className="text-sm">{s.title}</p>
-            <p className="text-xl font-semibold mt-1">{s.value}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/10 pointer-events-none" />
+            <p className="text-gray-600 dark:text-gray-300 text-sm">{s.title}</p>
+            <p className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">{s.value}</p>
           </div>
         ))}
       </div>
