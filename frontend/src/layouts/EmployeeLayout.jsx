@@ -1,5 +1,12 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { FaTachometerAlt, FaClipboardList, FaBox, FaUser } from "react-icons/fa";
+import {
+  FaTachometerAlt,
+  FaClipboardList,
+  FaBox,
+  FaUser,
+  FaSignOutAlt,
+} from "react-icons/fa";
+import { motion } from "framer-motion";
 
 const EmployeeLayout = () => {
   const navigate = useNavigate();
@@ -10,27 +17,43 @@ const EmployeeLayout = () => {
     navigate("/login");
   };
 
-  // Active link style
+  // Dynamic link styles
   const linkClass = ({ isActive }) =>
-    `flex items-center gap-2 px-3 py-2 rounded-l-lg ${
+    `flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
       isActive
-        ? "bg-blue-700 font-semibold border-l-4 border-yellow-400"
-        : "hover:bg-blue-500"
-    } text-white`;
+        ? "bg-gradient-to-r from-[#FF8C00] to-[#FF4B91] text-black shadow-md font-semibold"
+        : "text-[#F5F5F5] hover:text-[#FF8C00] hover:bg-[#2E2E2E]"
+    }`;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Navbar */}
-      <nav className="bg-blue-600 text-white px-6 py-4 flex justify-between items-center">
+    <div className="min-h-screen flex flex-col bg-[#121212] text-[#F5F5F5]">
+      {/* Top Navbar */}
+      <motion.nav
+        initial={{ y: -40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="flex justify-between items-center px-8 py-4 bg-gradient-to-r from-[#2E2E2E] to-[#1C1C1C] shadow-lg border-b border-[#FF8C00]/40"
+      >
+        {/* Logo + Title */}
         <div
-          className="flex items-center gap-4 cursor-pointer"
+          className="flex items-center gap-3 cursor-pointer"
           onClick={() => navigate("/employee")}
         >
-          <img src="/logooo.png" alt="Logo" className="w-12 h-12 object-contain" />
-          <h1 className="text-xl font-bold">Employee Panel</h1>
+          <img
+            src="/logooo.png"
+            alt="Shop4Ever Logo"
+            className="w-12 h-12 object-contain rounded-full border border-[#FF8C00]/60 shadow-lg"
+          />
+          <div>
+           <h1 className="text-2xl font-extrabold text-[#FF8C00]">
+    Shop4Ever
+  </h1>
+            <p className="text-sm text-gray-400 -mt-1">Employee Panel</p>
+          </div>
         </div>
 
-        <div className="flex gap-4 items-center">
+        {/* Navigation Links */}
+        <div className="flex items-center gap-4 text-sm font-medium">
           <NavLink to="/employee" end className={linkClass}>
             <FaTachometerAlt /> Dashboard
           </NavLink>
@@ -38,25 +61,40 @@ const EmployeeLayout = () => {
             <FaClipboardList /> Orders
           </NavLink>
           <NavLink to="/employee/products" className={linkClass}>
-            <FaBox />Add Products
+            <FaBox /> Add Products
           </NavLink>
           <NavLink to="/employee/profile" className={linkClass}>
             <FaUser /> Profile
           </NavLink>
 
-          <button
+          {/* Logout Button */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={logout}
-            className="bg-white text-blue-600 px-3 py-1 rounded-lg hover:bg-gray-100"
+            className="flex items-center gap-2 bg-[#FF8C00] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#ffa733] shadow-md transition-all"
           >
-            Logout
-          </button>
+            <FaSignOutAlt /> Logout
+          </motion.button>
         </div>
-      </nav>
+      </motion.nav>
 
-      {/* Main Content */}
-      <main className="flex-1 p-6 bg-gray-50 dark:bg-gray-900">
-        <Outlet />
+      {/* Main Dashboard Content */}
+      <main className="flex-1 p-8 bg-[#121212]">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="bg-[#2E2E2E]/60 border border-[#FF8C00]/20 rounded-2xl p-6 shadow-xl backdrop-blur-sm"
+        >
+          <Outlet />
+        </motion.div>
       </main>
+
+      {/* Footer */}
+      <footer className="text-center py-4 text-gray-500 text-sm border-t border-[#2E2E2E]">
+        © {new Date().getFullYear()} Shop4Ever — Empowering Employees Everywhere 💼
+      </footer>
     </div>
   );
 };
