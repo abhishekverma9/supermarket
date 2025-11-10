@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import { db } from "../config/db.js";
 import imagekit from "../config/imageKit.js";
 
@@ -14,7 +15,7 @@ const getAllEmployees = async (req, res) => {
                 email,
                 manager_id,
                 profile_photo
-            FROM Employee where role != "admin"
+            FROM Employee where role != 'Admin'
         `);
         res.json({ success: true, employees: rows });
     } catch (error) {
@@ -36,45 +37,74 @@ const deleteEmployee = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 }
+
 const addEmployee = async (req, res) => {
-    try {
-        const { first_name, last_name, role, email, phone, salary, password, manager_id } = req.body;
+  try {
+    const {
+      first_name,
+      last_name,
+      role,
+      email,
+      phone,
+      salary,
+      password,
+      manager_id,
+    } = req.body;
 
-        // Validation
-        if (!first_name || !last_name || !email || !phone || !salary || !password || !role) {
-            return res.json({ success: false, message: "Missing required fields" });
-        }
-
-        // Check if email already exists
-        const [existing] = await db().query("SELECT * FROM Employee WHERE email = ?", [email]);
-        if (existing.length) {
-            return res.json({ success: false, message: "Email already exists" });
-        }
-
-        let profile_photo_url = null;
-        if (req.file) {
-            const uploadResult = await imagekit.upload({
-                file: req.file.buffer, // multer with memory storage
-                fileName: req.file.originalname,
-                folder: "/employees",
-            });
-            profile_photo_url = uploadResult.url;
-        }
-
-        // Insert employee
-        const [result] = await db().query(
-            `INSERT INTO Employee
-      (first_name, last_name, role, email, phone, salary, password, manager_id, profile_photo)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [first_name, last_name, role, email, phone, salary, password, manager_id || null, profile_photo_url]
-        );
-
-        res.json({ success: true, message: "Employee added successfully", employee_id: result.insertId, });
-    } catch (error) {
-        console.error(error);
-        res.json({ success: false, message: error.message });
+    // Validation
+    if (!first_name || !last_name || !email || !phone || !salary || !password || !role) {
+      return res.json({ success: false, message: "Missing required fields" });
     }
-}
+
+    // Check if email already exists
+    const [existing] = await db().query("SELECT * FROM Employee WHERE email = ?", [email]);
+    if (existing.length) {
+      return res.json({ success: false, message: "Email already exists" });
+    }
+
+    // Hash password before inserting
+    const hashedPassword = await bcrypt.hash(password, 10); // 10 = salt rounds
+
+    // Optional: profile photo
+    let profile_photo_url = null;
+    if (req.file) {
+      const uploadResult = await imagekit.upload({
+        file: req.file.buffer, // multer with memory storage
+        fileName: req.file.originalname,
+        folder: "/employees",
+      });
+      profile_photo_url = uploadResult.url;
+    }
+
+    // Insert new employee
+    const [result] = await db().query(
+      `INSERT INTO Employee
+        (first_name, last_name, role, email, phone, salary, password, manager_id, profile_photo)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        first_name,
+        last_name,
+        role,
+        email,
+        phone,
+        salary,
+        hashedPassword,  
+        manager_id || null,
+        profile_photo_url,
+      ]
+    );
+
+    res.json({
+      success: true,
+      message: "Employee added successfully",
+      employee_id: result.insertId,
+    });
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
 const updateEmployee = async (req, res) => {
     const { employee_id } = req.params;
     const { manager_id, salary } = req.body;
@@ -84,7 +114,7 @@ const updateEmployee = async (req, res) => {
     try {
         // Update employee in DB
         const query = `
-      UPDATE employee 
+      UPDATE Employee 
       SET manager_id = ?, salary = ? 
       WHERE employee_id = ?
     `;
@@ -161,14 +191,14 @@ const getDashboardStats = async (req, res) => {
     if(!adminId){
         return res.json({success:false,message:"Not Authorized"})
     }
-    const [totalOrders] = await db().query("SELECT COUNT(*) AS count FROM orders WHERE status != 'Cancelled'");
-    const [pendingOrders] = await db().query("SELECT COUNT(*) AS count FROM orders WHERE status = 'Pending'");
-    const [totalRevenue] = await db().query("SELECT COALESCE(SUM(total_amount),0) AS amount FROM orders WHERE status = 'Delivered'");
-    const [lowStockProducts] = await db().query("SELECT COUNT(*) AS count FROM product WHERE stock_quantity < 5");
-    const [totalProducts] = await db().query("SELECT COUNT(*) AS count FROM product");
-    const [totalEmployees] = await db().query("SELECT COUNT(*) AS count FROM employee");
-    const [totalSalary] = await db().query("SELECT COALESCE(SUM(salary),0) AS amount FROM employee");
-    const [totalCustomers] = await db().query("SELECT COUNT(*) AS count FROM consumers");
+    const [totalOrders] = await db().query("SELECT COUNT(*) AS count FROM Orders WHERE status != 'Cancelled'");
+    const [pendingOrders] = await db().query("SELECT COUNT(*) AS count FROM Orders WHERE status = 'Pending'");
+    const [totalRevenue] = await db().query("SELECT COALESCE(SUM(total_amount),0) AS amount FROM Orders WHERE status = 'Delivered'");
+    const [lowStockProducts] = await db().query("SELECT COUNT(*) AS count FROM Product WHERE stock_quantity < 5");
+    const [totalProducts] = await db().query("SELECT COUNT(*) AS count FROM Product");
+    const [totalEmployees] = await db().query("SELECT COUNT(*) AS count FROM Employee");
+    const [totalSalary] = await db().query("SELECT COALESCE(SUM(salary),0) AS amount FROM Employee");
+    const [totalCustomers] = await db().query("SELECT COUNT(*) AS count FROM Consumers");
 
     res.json({
       success: true,
