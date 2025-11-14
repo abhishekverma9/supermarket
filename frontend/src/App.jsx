@@ -13,6 +13,7 @@ import Orders from './pages/consumer/Orders'
 import Cart from './pages/consumer/Cart'
 import { ToastContainer } from 'react-toastify'
 import Checkout from './pages/consumer/Checkout'
+import ProductDetails from './pages/consumer/ProductDetails'
 import AllOrders from './pages/employee/Orders'
 import EmpProducts from './pages/employee/Products'
 import EmpProfile from './pages/employee/Profile'
@@ -51,6 +52,7 @@ const App = () => {
         <Route element={<ProtectedRoute roles={["consumer"]} />}>
           <Route element={<ConsumerLayout />}>
             <Route path="/consumer" element={<Dashboard/>} />
+            <Route path="/consumer/product/:id" element={<ProductDetails/>} />
             <Route path="/consumer/orders" element={<Orders />} />
             <Route path="/consumer/cart" element={<Cart />} />
             <Route path="/consumer/checkout" element={<Checkout/>} />

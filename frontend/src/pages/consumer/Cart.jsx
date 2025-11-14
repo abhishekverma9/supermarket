@@ -14,7 +14,7 @@ const CartPage = () => {
   }, [fetchCartItems]); // Added dependency
 
   const totalAmount = cart.reduce(
-    (sum, item) => sum + item.quantity * item.final_price,
+    (sum, item) => sum + item.quantity * Number(item.final_price || 0),
     0
   );
 
@@ -58,7 +58,7 @@ const CartPage = () => {
                       {item.name}
                     </h3>
                     <p className="text-sm text-gray-400">
-                      Price: ₹{item.final_price.toFixed(2)}
+                      Price: ₹{Number(item.final_price || 0).toFixed(2)}
                     </p>
 
                     {/* Quantity controls */}
@@ -89,7 +89,7 @@ const CartPage = () => {
                   {/* Price and Remove */}
                   <div className="flex flex-col items-end justify-center gap-2">
                     <p className="font-semibold text-lg text-gray-100">
-                      ₹{(item.quantity * item.final_price).toFixed(2)}
+                      ₹{(item.quantity * Number(item.final_price || 0)).toFixed(2)}
                     </p>
                     <button
                       onClick={() => removeCartItem(item.cart_id)}
@@ -114,7 +114,7 @@ const CartPage = () => {
 
             {/* Checkout Button */}
             <button
-              onClick={() => navigate("/maps")} // Preserved navigation logic
+              onClick={() => navigate("/consumer/checkout")}
               className="mt-6 w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
             >
               Proceed to Checkout

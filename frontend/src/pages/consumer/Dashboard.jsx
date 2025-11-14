@@ -1,9 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
 import { FaShoppingCart } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 
 const ProductGrid = () => {
+  const navigate = useNavigate();
   const { products, addToCart } = useContext(AuthContext);
   const [imageUrls, setImageUrls] = useState({});
 
@@ -73,7 +75,7 @@ const ProductGrid = () => {
             return (
               <motion.div
                 key={product.product_id}
-                className="bg-[#1e1e1e] border border-[#FF8C00]/30 rounded-2xl overflow-hidden shadow-lg flex flex-col" // Refined Card Style
+                className="bg-[#1e1e1e] border border-[#FF8C00]/30 rounded-2xl overflow-hidden shadow-lg flex flex-col cursor-pointer" // Refined Card Style
                 variants={cardVariants}
                 whileHover={{
                   scale: 1.03,
@@ -82,7 +84,10 @@ const ProductGrid = () => {
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                <div className="relative">
+                <div 
+                  className="relative cursor-pointer"
+                  onClick={() => navigate(`/consumer/product/${product.product_id}`)}
+                >
                   <img
                     src={imageUrls[product.product_id] || product.product_image}
                     alt={product.name}
@@ -100,10 +105,13 @@ const ProductGrid = () => {
                 <div className="p-5 flex flex-col flex-1">
                   {" "}
                   {/* flex-1 makes this div grow */}
-                  <div className="flex-1">
+                  <div 
+                    className="flex-1 cursor-pointer"
+                    onClick={() => navigate(`/consumer/product/${product.product_id}`)}
+                  >
                     {" "}
                     {/* This inner div pushes the button down */}
-                    <h3 className="font-bold text-lg mb-2 text-gray-100">
+                    <h3 className="font-bold text-lg mb-2 text-gray-100 hover:text-[#FF8C00] transition-colors">
                       {product.name}
                     </h3>
                     <p className="text-gray-400 text-sm mb-4 min-h-[60px]">
@@ -144,7 +152,10 @@ const ProductGrid = () => {
                   </div>
                   {/* Add to Cart Button (Refined & Animated) */}
                   <motion.button
-                    onClick={() => addToCart(product.product_id, 1)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent navigation when clicking button
+                      addToCart(product.product_id, 1);
+                    }}
                     disabled={product.stock_quantity === 0}
                     className="w-full px-4 py-3 mt-2 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md flex items-center justify-center gap-2 transition-colors disabled:bg-gray-600 disabled:hover:bg-gray-600 disabled:cursor-not-allowed"
                     whileTap={{ scale: 0.95 }}
