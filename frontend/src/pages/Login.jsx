@@ -55,18 +55,18 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[#121212] text-[#F5F5F5] overflow-hidden">
+    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-[#FF8C00]/40 via-[#8A2BE2]/50 to-[#121212] text-[#F5F5F5] overflow-hidden">
       {/* Left Brand Section */}
       <motion.div
         initial={{ opacity: 0, x: -60 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 1 }}
-        className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-[#FF8C00]/40 via-[#8A2BE2]/30 to-[#121212] p-10 md:p-16 relative"
+        className="flex-1 flex flex-col items-center justify-center p-10 md:p-16 relative"
       >
         <img
           src="/logooo.png"
           alt="Shop4Ever Logo"
-          className="w-28 md:w-36 mb-6 drop-shadow-[0_0_20px_rgba(255,140,0,0.6)]"
+          className="w-28 md:w-44 lg:w-64 mb-6 drop-shadow-[0_0_20px_rgba(255,140,0,0.6)]"
         />
         <h1 className="text-5xl md:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C00] via-[#FF4B91] to-[#8A2BE2] animate-gradient-x drop-shadow-[0_0_15px_rgba(255,140,0,0.5)]">
           Shop4Ever

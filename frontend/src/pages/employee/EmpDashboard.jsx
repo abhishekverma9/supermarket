@@ -74,7 +74,7 @@ const Dashboard = () => {
       {products.length === 0 ? (
         <p className="text-center text-gray-400">No products available</p>
       ) : (
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10 py-4">
           {products.map((p) => {
             const isEdit = editStates[p.product_id] || false;
             const imgSrc = imageUrls[p.product_id] || p.product_image;
