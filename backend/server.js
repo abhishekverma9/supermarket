@@ -8,6 +8,7 @@ import cartRouter from './routes/cartRoutes.js'
 import orderRouter from './routes/orderRoutes.js'
 import employeeRouter from './routes/employeeRoutes.js'
 import adminRouter from './routes/adminRoutes.js'
+import botRouter from './routes/chatBotRoute.js'
 
 //App config
 const app = express()
@@ -25,6 +26,7 @@ app.use('/api/cart',cartRouter)
 app.use('/api/order',orderRouter)
 app.use('/api/employee',employeeRouter)
 app.use('/api/admin',adminRouter)
+app.use('/api/chatbot',botRouter)
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
