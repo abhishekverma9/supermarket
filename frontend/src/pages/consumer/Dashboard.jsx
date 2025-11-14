@@ -8,6 +8,24 @@ const ProductGrid = () => {
   const navigate = useNavigate();
   const { products, addToCart } = useContext(AuthContext);
   const [imageUrls, setImageUrls] = useState({});
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Get search query from localStorage (set by ConsumerLayout)
+  useEffect(() => {
+    const storedQuery = localStorage.getItem("searchQuery") || "";
+    setSearchQuery(storedQuery);
+
+    // Listen for custom search query changes
+    const handleSearchChange = (e) => {
+      setSearchQuery(e.detail);
+    };
+
+    window.addEventListener("searchQueryChanged", handleSearchChange);
+
+    return () => {
+      window.removeEventListener("searchQueryChanged", handleSearchChange);
+    };
+  }, []);
 
   // Fetch images from Unsplash dynamically (Preserved Logic)
   useEffect(() => {
@@ -51,14 +69,31 @@ const ProductGrid = () => {
     visible: { opacity: 1, y: 0 },
   };
 
+  // Filter products based on search query
+  const filteredProducts = React.useMemo(() => {
+    if (!searchQuery.trim()) return products;
+
+    const query = searchQuery.toLowerCase();
+    return products.filter(
+      (product) =>
+        product.name?.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query) ||
+        product.category?.toLowerCase().includes(query)
+    );
+  }, [products, searchQuery]);
+
   return (
     <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-6 md:p-12">
       <h2 className="text-3xl font-bold text-center mb-8 text-[#FF8C00]">
-        Featured Products
+        {searchQuery.trim() ? `Search Results for "${searchQuery}"` : "Featured Products"}
       </h2>
 
-      {products.length === 0 ? (
-        <p className="text-center text-gray-400">No products available</p>
+      {filteredProducts.length === 0 ? (
+        <p className="text-center text-gray-400 text-lg">
+          {searchQuery.trim()
+            ? `No products found matching "${searchQuery}"`
+            : "No products available"}
+        </p>
       ) : (
         <motion.div
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
@@ -66,7 +101,7 @@ const ProductGrid = () => {
           initial="hidden"
           animate="visible"
         >
-          {products.map((product) => {
+          {filteredProducts.map((product) => {
             // Price & Discount Logic (Preserved)
             const price = parseFloat(product.price);
             const discount = parseFloat(product.discount);

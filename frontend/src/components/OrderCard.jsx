@@ -2,6 +2,20 @@ import React, { useContext, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { motion } from "framer-motion";
+import {
+  FaShoppingBag,
+  FaUser,
+  FaMapMarkerAlt,
+  FaBox,
+  FaCalendarAlt,
+  FaRupeeSign,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaClock,
+  FaTruck,
+  FaExclamationCircle,
+} from "react-icons/fa";
 
 const OrderCard = ({ order }) => {
   const { formatDate, token, backendUrl } = useContext(AuthContext);
@@ -15,7 +29,7 @@ const OrderCard = ({ order }) => {
         { headers: { token } }
       );
       if (data.success) {
-        setStatus(newStatus); // ✅ update UI if backend succeeds
+        setStatus(newStatus);
         toast.success(data.message);
       } else {
         toast.error(data.message);
@@ -27,91 +41,197 @@ const OrderCard = ({ order }) => {
 
   const delivery = order.delivery || {};
 
+  // Get status icon and color
+  const getStatusInfo = (status) => {
+    switch (status) {
+      case "Pending":
+        return {
+          icon: <FaClock />,
+          bgColor: "bg-yellow-500/20",
+          textColor: "text-yellow-300",
+          borderColor: "border-yellow-500/30",
+        };
+      case "Confirmed":
+        return {
+          icon: <FaExclamationCircle />,
+          bgColor: "bg-blue-500/20",
+          textColor: "text-blue-300",
+          borderColor: "border-blue-500/30",
+        };
+      case "Shipped":
+        return {
+          icon: <FaTruck />,
+          bgColor: "bg-indigo-500/20",
+          textColor: "text-indigo-300",
+          borderColor: "border-indigo-500/30",
+        };
+      case "Delivered":
+        return {
+          icon: <FaCheckCircle />,
+          bgColor: "bg-green-500/20",
+          textColor: "text-green-300",
+          borderColor: "border-green-500/30",
+        };
+      case "Cancelled":
+        return {
+          icon: <FaTimesCircle />,
+          bgColor: "bg-red-500/20",
+          textColor: "text-red-300",
+          borderColor: "border-red-500/30",
+        };
+      default:
+        return {
+          icon: <FaBox />,
+          bgColor: "bg-gray-500/20",
+          textColor: "text-gray-300",
+          borderColor: "border-gray-500/30",
+        };
+    }
+  };
+
+  const statusInfo = getStatusInfo(status);
+  const isEditable = status !== "Delivered" && status !== "Cancelled";
+
   return (
-    <div className="mb-6 border rounded bg-gray-800 p-4">
-      <div className="flex justify-between gap-4 flex-wrap">
-        {/* Left half */}
-        <div className="flex-1 min-w-[250px]">
-          <div className="mb-2">
-            <strong>Order ID:</strong> {order.order_id} <br />
-            <strong>Date:</strong> {formatDate(order.order_date)} <br />
-            <strong>Status:</strong>{" "}
-            {status === "Delivered" || status === "Cancelled" ? (
-              <span
-                className={`px-2 py-1 rounded ${
-                  status === "Delivered"
-                    ? "text-green-500 bg-gray-700"
-                    : "text-red-500 bg-gray-700"
-                }`}
-              >
-                {status}
-              </span>
-            ) : (
-              <select
-                value={status}
-                onChange={(e) => changeStatus(e.target.value)} // ✅ call API directly
-                className="px-2 py-1 bg-gray-600 rounded"
-              >
-                <option value="Pending">Pending</option>
-                <option value="Confirmed">Confirmed</option>
-                <option value="Shipped">Shipped</option>
-                <option value="Delivered">Delivered</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-            )}
-            <br />
-            <strong>Total:</strong> ₹{order.total_amount}
+    <motion.div
+      whileHover={{
+        y: -5,
+        boxShadow: "0px 8px 20px rgba(255, 140, 0, 0.2)",
+      }}
+      className="bg-[#2E2E2E]/70 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-[#FF8C00]/30 flex flex-col h-full min-h-[700px]"
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6 gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-[#FF8C00]/10 border border-[#FF8C00]/30">
+            <FaShoppingBag className="text-[#FF8C00]" size={24} />
           </div>
-
-          <div className="mb-2">
-            <strong>Customer:</strong> {order.first_name} {order.last_name} |{" "}
-            {order.email} | {order.phone}
-          </div>
-
-          {delivery && (
-            <div className="mb-2">
-              <strong>Delivery Info:</strong>
-              <p>
-                {delivery.receiver_name}, {delivery.phone}
-              </p>
-              <p>
-                {delivery.house_no}, {delivery.street}, {delivery.building},{" "}
-                {delivery.city}, {delivery.state} - {delivery.pincode}
-              </p>
-              {delivery.delivery_instructions && (
-                <p>
-                  <strong>Instructions:</strong>{" "}
-                  {delivery.delivery_instructions}
-                </p>
-              )}
+          <div>
+            <h3 className="text-2xl font-bold text-gray-100">
+              Order #{order.order_id}
+            </h3>
+            <div className="flex items-center gap-2 mt-1 text-gray-400 text-sm">
+              <FaCalendarAlt size={12} />
+              <span>{formatDate(order.order_date)}</span>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Right half */}
-        <div className="flex-1 min-w-[300px]">
-          <strong>Items:</strong>
-          <table className="w-full border-collapse border border-gray-300 mt-2">
-            <thead>
-              <tr className="bg-gray-700">
-                <th className="border px-2 py-1">Product</th>
-                <th className="border px-2 py-1">Quantity</th>
-                <th className="border px-2 py-1">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {order.items.map((item, idx) => (
-                <tr key={idx}>
-                  <td className="border px-2 py-1">{item.product_name}</td>
-                  <td className="border px-2 py-1">{item.quantity}</td>
-                  <td className="border px-2 py-1">₹{item.price}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Status Badge/Dropdown - Enhanced Visibility */}
+        {isEditable ? (
+          <div className="flex flex-col items-end gap-2">
+            <label className="text-xs text-gray-400 font-semibold">Change Status:</label>
+            <select
+              value={status}
+              onChange={(e) => changeStatus(e.target.value)}
+              className={`px-5 py-3 rounded-lg border-2 font-bold text-base cursor-pointer transition-all shadow-lg hover:shadow-xl ${statusInfo.bgColor} ${statusInfo.textColor} ${statusInfo.borderColor} bg-[#1e1e1e] hover:scale-105 focus:outline-none focus:ring-4 focus:ring-[#FF8C00]/50 min-w-[160px]`}
+              style={{
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23FF8C00' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 12px center',
+                paddingRight: '40px'
+              }}
+            >
+              <option value="Pending" className="bg-[#1e1e1e] text-yellow-300">Pending</option>
+              <option value="Confirmed" className="bg-[#1e1e1e] text-blue-300">Confirmed</option>
+              <option value="Shipped" className="bg-[#1e1e1e] text-indigo-300">Shipped</option>
+              <option value="Delivered" className="bg-[#1e1e1e] text-green-300">Delivered</option>
+              <option value="Cancelled" className="bg-[#1e1e1e] text-red-300">Cancelled</option>
+            </select>
+          </div>
+        ) : (
+          <div
+            className={`flex items-center gap-2 px-5 py-3 rounded-full border-2 ${statusInfo.bgColor} ${statusInfo.textColor} ${statusInfo.borderColor} font-bold text-base shadow-lg`}
+          >
+            {statusInfo.icon}
+            <span>{status}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Customer Info */}
+      <div className="mb-6 bg-[#1e1e1e] p-4 rounded-xl border border-[#FF8C00]/20">
+        <h4 className="font-semibold text-gray-200 mb-3 flex items-center gap-2">
+          <FaUser className="text-[#FF8C00]" />
+          Customer Information
+        </h4>
+        <div className="space-y-1 text-sm">
+          <p className="text-gray-300">
+            <span className="font-semibold text-gray-400">Name:</span>{" "}
+            {order.first_name} {order.last_name}
+          </p>
+          <p className="text-gray-300">
+            <span className="font-semibold text-gray-400">Email:</span> {order.email}
+          </p>
+          <p className="text-gray-300">
+            <span className="font-semibold text-gray-400">Phone:</span> {order.phone || "N/A"}
+          </p>
         </div>
       </div>
-    </div>
+
+      {/* Delivery Address */}
+      {delivery && Object.keys(delivery).length > 0 && (
+        <div className="mb-6 bg-[#1e1e1e] p-4 rounded-xl border border-[#FF8C00]/20">
+          <h4 className="font-semibold text-gray-200 mb-3 flex items-center gap-2">
+            <FaMapMarkerAlt className="text-[#FF8C00]" />
+            Delivery Address
+          </h4>
+          <div className="space-y-1 text-sm text-gray-300">
+            <p>
+              <span className="font-semibold text-gray-100">{delivery.receiver_name}</span> - {delivery.phone}
+            </p>
+            <p>
+              {delivery.house_no}, {delivery.street}, {delivery.building}
+            </p>
+            <p>
+              {delivery.city}, {delivery.state} - {delivery.pincode}
+            </p>
+            {delivery.delivery_instructions && (
+              <p className="pt-2 text-gray-400 italic">
+                <span className="font-semibold text-gray-300">Instructions:</span>{" "}
+                {delivery.delivery_instructions}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Order Items - Fixed height with scroll */}
+      <div className="mb-6 bg-[#1e1e1e] p-4 rounded-xl border border-[#FF8C00]/20 flex-1 flex flex-col min-h-[200px]">
+        <h4 className="font-semibold text-gray-200 mb-3 flex items-center gap-2">
+          <FaBox className="text-[#FF8C00]" />
+          Order Items ({order.items?.length || 0})
+        </h4>
+        <div className="space-y-2 flex-1 overflow-y-auto max-h-[250px] pr-2 custom-scrollbar">
+          {order.items?.map((item, idx) => (
+            <div
+              key={idx}
+              className="flex justify-between items-center p-2 bg-[#121212] rounded-lg"
+            >
+              <div>
+                <p className="text-gray-100 font-medium">{item.product_name}</p>
+                <p className="text-sm text-gray-400">
+                  Quantity: {item.quantity} × ₹{Number(item.price).toFixed(2)}
+                </p>
+              </div>
+              <p className="text-[#FF8C00] font-semibold">
+                ₹{(item.quantity * Number(item.price)).toFixed(2)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Total Amount - Fixed at bottom */}
+      <div className="flex items-center justify-between pt-4 border-t border-[#FF8C00]/20 mt-auto">
+        <span className="text-gray-300 font-semibold text-lg">Total Amount:</span>
+        <span className="text-2xl font-bold text-[#FF8C00] flex items-center gap-1">
+          <FaRupeeSign size={20} />
+          {Number(order.total_amount).toFixed(2)}
+        </span>
+      </div>
+    </motion.div>
   );
 };
 
