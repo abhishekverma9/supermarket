@@ -15,7 +15,7 @@ const signupConsumer = async (req, res) => {
 
     // Check if consumer already exists
     const [existingConsumer] = await db().query(
-      "SELECT * FROM consumers WHERE email = ?",
+      "SELECT * FROM Consumers WHERE email = ?",
       [email]
     );
     if (existingConsumer.length > 0) {
@@ -27,7 +27,7 @@ const signupConsumer = async (req, res) => {
 
     // Insert new consumer
     const [result] = await db().query(
-      `INSERT INTO consumers (first_name, last_name, email, phone, password)
+      `INSERT INTO Consumers (first_name, last_name, email, phone, password)
        VALUES (?, ?, ?, ?, ?)`,
       [first_name, last_name, email, phone || "", hashedPassword]
     );
@@ -61,11 +61,11 @@ const login = async (req, res) => {
     let nameField;
 
     if (role === "owner" || role === "employee") {
-      tableName = "employee";
+      tableName = "Employee";
       idField = "employee_id";
       nameField = "first_name";
     } else if (role === "consumer") {
-      tableName = "consumers";
+      tableName = "Consumers";
       idField = "consumer_id";
       nameField = "first_name";
     } else {
@@ -79,66 +79,28 @@ const login = async (req, res) => {
     }
 
     const user = rows[0];
-    console.log("Login attempt - User found:", { email, role, userRole: user.role, hasPassword: !!user.password });
 
     // Check role for employee/owner
-    if (tableName === "employee") {
-      const userRole = user.role ? user.role.toLowerCase().trim() : "";
-      
-      if (role === "owner") {
-        // Owner must have role "admin" or "Admin"
-        if (userRole !== "admin") {
-          console.log("Owner login failed - user role is not admin:", userRole);
-          return res.json({ success: false, message: "Not an Owner. Only users with Admin role can login as Owner." });
-        }
+    if (tableName === "Employee") {
+      if (role === "owner" && user.role.toLowerCase() !== "admin") {
+        return res.json({ success: false, message: "Not an Owner" });
       }
-      
-      if (role === "employee") {
-        // Employee can have role "employee", "manager", or empty/NULL (treat as employee)
-        if (userRole !== "" && userRole !== "employee" && userRole !== "manager") {
-          console.log("Employee login failed - invalid role:", userRole);
-          return res.json({ success: false, message: `Not an Employee. User role is: ${user.role || "empty"}` });
-        }
+      if (role === "employee" && user.role.toLowerCase() !== "employee" && user.role.toLowerCase() !== "manager") {
+        return res.json({ success: false, message: "Not an Employee" });
       }
+
     }
 
-    // Check password - try bcrypt first, then fallback to plain text for backward compatibility
-    let valid = false;
-    if (user.password) {
-      // Check if password is a bcrypt hash (starts with $2a$, $2b$, or $2y$)
-      const isBcryptHash = user.password.startsWith("$2");
-      
-      if (isBcryptHash) {
-        // Try bcrypt comparison for properly hashed passwords
-        try {
-          valid = await bcrypt.compare(password, user.password);
-        } catch (error) {
-          console.error("Bcrypt comparison error:", error);
-          valid = false;
-        }
-      } else {
-        // Plain text password comparison (for backward compatibility with "hashed_pw_1" etc.)
-        valid = password === user.password;
-        console.log("Plain text password check:", { provided: password, stored: user.password, match: valid });
-      }
-    } else {
-      console.log("User has no password set");
-    }
+    // Check password
+    // For consumer, you might still want bcrypt.compare
+    const valid = await bcrypt.compare(password, user.password)
+    // const valid = password === user.password ? true : false
 
     if (!valid) {
-      console.log("Password validation failed");
-      return res.json({ success: false, message: "Invalid credentials. Please check your email and password." });
+      return res.json({ success: false, message: "Invalid credentials" });
     }
 
-    // Handle both employee_id and emp_id column names
-    const userId = user.employee_id || user.emp_id || user[idField];
-    if (!userId) {
-      console.error("Could not find user ID field. Available fields:", Object.keys(user));
-      return res.json({ success: false, message: "Database error: Could not find user ID" });
-    }
-
-    console.log("Login successful for user:", userId);
-    const token = generateToken({ id: userId, role });
+    const token = generateToken({ id: user[idField], role });
 
     return res.json({
       success: true,

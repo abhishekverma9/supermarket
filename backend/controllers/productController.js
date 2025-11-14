@@ -14,6 +14,10 @@ const getAllProducts = async (req, res) => {
       ORDER BY p.created_at DESC
     `);
 
+    if (products.length === 0) {
+      return res.json({ success: false, message: "No products found" });
+    }
+
     const productsWithFinalPrice = products.map(p => ({
       ...p,
       final_price: p.discount_value
