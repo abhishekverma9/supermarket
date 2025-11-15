@@ -33,10 +33,11 @@ const OwnerOrders = () => {
   const orderStats = useMemo(() => {
     const pending = validOrders.filter((o) => o.status === "Pending").length;
     const shipped = validOrders.filter((o) => o.status === "Shipped").length;
+    const outForDelivery = validOrders.filter((o) => o.status === "Out for Delivery").length;
     const delivered = validOrders.filter((o) => o.status === "Delivered").length;
     const processing = validOrders.filter((o) => o.status === "Processing").length;
     
-    return { pending, shipped, delivered, processing };
+    return { pending, shipped, outForDelivery, delivered, processing };
   }, [validOrders]);
 
   // Helper function to format date
@@ -74,6 +75,13 @@ const OwnerOrders = () => {
           bgColor: "bg-indigo-500/20",
           textColor: "text-indigo-300",
           borderColor: "border-indigo-500/30",
+        };
+      case "Out for Delivery":
+        return {
+          icon: <FaTruck />,
+          bgColor: "bg-purple-500/20",
+          textColor: "text-purple-300",
+          borderColor: "border-purple-500/30",
         };
       case "Delivered":
         return {
@@ -126,7 +134,7 @@ const OwnerOrders = () => {
       </motion.div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -169,6 +177,25 @@ const OwnerOrders = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
+          className="bg-gradient-to-br from-[#1C1C1C] to-[#2E2E2E] border border-purple-500/30 rounded-2xl p-6 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-sm mb-1">Out for Delivery</p>
+              <p className="text-3xl font-bold text-purple-300">
+                {orderStats.outForDelivery}
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300">
+              <FaTruck size={24} />
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.4 }}
           className="bg-gradient-to-br from-[#1C1C1C] to-[#2E2E2E] border border-green-500/30 rounded-2xl p-6 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
         >
           <div className="flex items-center justify-between">
@@ -187,7 +214,7 @@ const OwnerOrders = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
           className="bg-gradient-to-br from-[#1C1C1C] to-[#2E2E2E] border border-green-500/30 rounded-2xl p-6 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
         >
           <div className="flex items-center justify-between">

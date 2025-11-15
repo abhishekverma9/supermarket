@@ -18,10 +18,11 @@ const AllOrders = () => {
     const pending = allOrders.filter((o) => o.status === "Pending").length;
     const confirmed = allOrders.filter((o) => o.status === "Confirmed").length;
     const shipped = allOrders.filter((o) => o.status === "Shipped").length;
+    const outForDelivery = allOrders.filter((o) => o.status === "Out for Delivery").length;
     const delivered = allOrders.filter((o) => o.status === "Delivered").length;
     const cancelled = allOrders.filter((o) => o.status === "Cancelled").length;
 
-    return { pending, confirmed, shipped, delivered, cancelled, total: allOrders.length };
+    return { pending, confirmed, shipped, outForDelivery, delivered, cancelled, total: allOrders.length };
   }, [allOrders]);
 
   return (
@@ -42,7 +43,7 @@ const AllOrders = () => {
       </motion.div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-8">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -100,6 +101,21 @@ const AllOrders = () => {
             </div>
             <p className="text-gray-400 text-xs mb-1">Shipped</p>
             <p className="text-2xl font-bold text-indigo-300">{orderStats.shipped}</p>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.45 }}
+          className="bg-gradient-to-br from-[#1C1C1C] to-[#2E2E2E] border border-purple-500/30 rounded-2xl p-4 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+        >
+          <div className="flex flex-col items-center text-center">
+            <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 mb-2">
+              <FaTruck size={20} />
+            </div>
+            <p className="text-gray-400 text-xs mb-1">Out for Delivery</p>
+            <p className="text-2xl font-bold text-purple-300">{orderStats.outForDelivery}</p>
           </div>
         </motion.div>
 

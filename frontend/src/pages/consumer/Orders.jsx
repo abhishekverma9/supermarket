@@ -39,6 +39,8 @@ const OrdersPage = () => {
         return "bg-yellow-500/20 text-yellow-300";
       case "Shipped":
         return "bg-blue-500/20 text-blue-300";
+      case "Out for Delivery":
+        return "bg-purple-500/20 text-purple-300";
       case "Cancelled":
         return "bg-red-500/20 text-red-300";
       default:
@@ -69,9 +71,9 @@ const OrdersPage = () => {
             initial="hidden"
             animate="visible"
           >
-            {orders.map((order) => (
+            {orders.map((order,index) => (
               <motion.div
-                key={order.order_id}
+                key={index}
                 className="bg-[#2E2E2E]/70 backdrop-blur-xl p-6 md:p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30"
                 variants={itemVariants}
                 whileHover={{
@@ -83,7 +85,7 @@ const OrdersPage = () => {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-2">
                   <span className="font-semibold text-xl text-gray-100">
-                    Order #{order.order_id}
+                    Order #{index+1}
                   </span>
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-medium self-start ${getStatusClass(

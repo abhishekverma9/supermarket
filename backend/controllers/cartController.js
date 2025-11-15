@@ -1,4 +1,5 @@
 import { db } from "../config/db.js";
+import { sendOrderConfirmationEmail } from "../utils/emailService.js";
 
 // Add product to cart
 const addToCart = async (req, res) => {
@@ -154,7 +155,7 @@ const checkout = async (req, res) => {
 
     // 2️⃣ Calculate total amount & prepare order items
     let totalAmount = 0;
-    const orderItems = cartItems.map(item => {
+    const calculatedItems = cartItems.map(item => {
       const finalPrice = item.discount_value
         ? Number(item.price) - (Number(item.price) * Number(item.discount_value)) / 100
         : Number(item.price);
@@ -176,7 +177,7 @@ const checkout = async (req, res) => {
     const orderId = orderResult.insertId;
 
     // 4️⃣ Insert order items
-    for (const item of orderItems) {
+    for (const item of calculatedItems) {
       await db().query(
         `INSERT INTO Order_Items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)`,
         [orderId, item.product_id, item.quantity, item.price]
@@ -191,7 +192,62 @@ const checkout = async (req, res) => {
     );
 
     // 6️⃣ Clear cart
-    await db().query(`DELETE FROM Cart WHERE consumer_id=?`, [consumerId]);
+    await db().query(`DELETE FROM Cart WHERE consumer_id = ?`, [consumerId]);
+
+    // 7️⃣ Fetch order header details
+    const [orderDetails] = await db().query(`
+      SELECT o.order_id, o.total_amount, o.status, o.order_date,
+             da.receiver_name, da.phone, da.house_no, da.street, da.building,
+             da.city, da.state, da.pincode, da.delivery_instructions
+      FROM Orders o
+      JOIN delivery_address da ON o.order_id = da.order_id
+      WHERE o.order_id = ?
+    `, [orderId]);
+
+    // 8️⃣ Fetch order items with product details
+    const [dbOrderItems] = await db().query(`
+      SELECT oi.product_id, p.name, oi.quantity, oi.price, p.image
+      FROM Order_Items oi
+      JOIN Product p ON oi.product_id = p.product_id
+      WHERE oi.order_id = ?
+    `, [orderId]);
+
+    // 9️⃣ Get consumer email
+    const [consumer] = await db().query(
+      "SELECT email FROM Consumers WHERE consumer_id = ?",
+      [consumerId]
+    );
+
+    // 🔟 Send confirmation email
+    if (consumer.length > 0 && consumer[0].email) {
+      const orderData = {
+        order_id: orderId,
+        total_amount: totalAmount,
+        status: "Pending",
+        order_date: orderDetails[0]?.order_date || new Date(),
+        items: dbOrderItems,
+        delivery: {
+          receiver_name,
+          phone,
+          house_no,
+          street,
+          building: building || "",
+          city,
+          state,
+          pincode,
+          delivery_instructions: delivery_instructions || "",
+        },
+      };
+
+      const emailResult = await sendOrderConfirmationEmail(
+        consumer[0].email,
+        orderData
+      );
+
+      if (!emailResult.success) {
+        console.warn("⚠️ Order placed but email sending failed:", emailResult.message);
+      }
+    }
 
     res.json({
       success: true,
@@ -205,4 +261,5 @@ const checkout = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 export { addToCart, getCartItems, updateCartItem, removeCartItem, clearCart,checkout };

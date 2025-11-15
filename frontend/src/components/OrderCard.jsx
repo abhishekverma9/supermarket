@@ -15,6 +15,7 @@ import {
   FaClock,
   FaTruck,
   FaExclamationCircle,
+  FaShippingFast,
 } from "react-icons/fa";
 
 const OrderCard = ({ order }) => {
@@ -64,6 +65,13 @@ const OrderCard = ({ order }) => {
           bgColor: "bg-indigo-500/20",
           textColor: "text-indigo-300",
           borderColor: "border-indigo-500/30",
+        };
+      case "Out for Delivery":
+        return {
+          icon: <FaShippingFast />,
+          bgColor: "bg-purple-500/20",
+          textColor: "text-purple-300",
+          borderColor: "border-purple-500/30",
         };
       case "Delivered":
         return {
@@ -136,6 +144,7 @@ const OrderCard = ({ order }) => {
               <option value="Pending" className="bg-[#1e1e1e] text-yellow-300">Pending</option>
               <option value="Confirmed" className="bg-[#1e1e1e] text-blue-300">Confirmed</option>
               <option value="Shipped" className="bg-[#1e1e1e] text-indigo-300">Shipped</option>
+              <option value="Out for Delivery" className="bg-[#1e1e1e] text-purple-300">Out for Delivery</option>
               <option value="Delivered" className="bg-[#1e1e1e] text-green-300">Delivered</option>
               <option value="Cancelled" className="bg-[#1e1e1e] text-red-300">Cancelled</option>
             </select>
