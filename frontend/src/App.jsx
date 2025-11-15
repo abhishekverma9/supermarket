@@ -20,6 +20,7 @@ import EmpProfile from './pages/employee/Profile'
 import OwnerEmployees from './pages/owner/Employees'
 import OwnerProducts from './pages/owner/Products'
 import OwnerOrders from './pages/owner/Orders'
+import Features from './pages/Features'
 
 const App = () => {
   return (
@@ -28,6 +29,7 @@ const App = () => {
       <Routes>
         <Route path='/' element={<Home />} />
         <Route path='/login' element={<LoginPage />} />
+        <Route path='/features' element={<Features />} />
         {/* Owner protected routes */}
         <Route element={<ProtectedRoute roles={["owner"]} />}>
           <Route element={<OwnerLayout />}>
