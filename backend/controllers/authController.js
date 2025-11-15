@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt";
 import { db } from "../config/db.js";
 import { generateToken } from "../utils/generateToken.js";
+import { generateOTP, storeOTP, verifyOTP, isOTPVerified, removeOTP, canResendOTP } from "../utils/otpStore.js";
+import { sendOTPEmail } from "../utils/emailService.js";
 
 // ---------------------------
 // Signup (Consumer only)
@@ -117,4 +119,195 @@ const login = async (req, res) => {
   }
 };
 
-export { signupConsumer, login };
+// ---------------------------
+// Forgot Password - Send OTP
+// ---------------------------
+const forgotPassword = async (req, res) => {
+  try {
+    const { email, resend } = req.body; 
+    if (!email) {
+      return res.json({ success: false, message: "Email is required" });
+    }
+
+    // Check resend cooldown (1 minute)
+    if (resend) {
+      if (!canResendOTP(email)) {
+        return res.json({
+          success: false,
+          message: "Please wait 1 minute before requesting a new OTP",
+        });
+      }
+    }
+
+    // Check if user exists (check both Consumers and Employee tables)
+    let user = null;
+    let tableName = null;
+
+    // Check Consumers table
+    const [consumers] = await db().query(
+      "SELECT * FROM Consumers WHERE email = ?",
+      [email]
+    );
+
+    if (consumers.length > 0) {
+      user = consumers[0];
+      tableName = "Consumers";
+    } else {
+      // Check Employee table
+      const [employees] = await db().query(
+        "SELECT * FROM Employee WHERE email = ?",
+        [email]
+      );
+
+      if (employees.length > 0) {
+        user = employees[0];
+        tableName = "Employee";
+      }
+    }
+
+    if (!user) { 
+      return res.json({success: false,message: "User not found"});
+    }
+
+    // Generate and store OTP
+    const otp = generateOTP();
+    storeOTP(email, otp); 
+    // Send OTP via email
+    const emailResult = await sendOTPEmail(email, otp);
+
+    if (!emailResult.success) { 
+      // In development, return OTP in response for testing
+      if (process.env.NODE_ENV === "development") {
+        return res.json({
+          success: true,
+          message: "OTP generated (email sending failed - check console)",
+          otp: otp, // Only in development
+        });
+      }
+      return res.json({
+        success: false,
+        message: "Failed to send email. Please try again later.",
+      });
+    } 
+    return res.json({
+      success: true,
+      message: "OTP sent to your email",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+// ---------------------------
+// Verify OTP
+// ---------------------------
+const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.json({ success: false, message: "Email and OTP are required" });
+    }
+
+    const verification = verifyOTP(email, otp);
+
+    if (!verification.valid) {
+      return res.json({ success: false, message: verification.message });
+    }
+
+    return res.json({
+      success: true,
+      message: verification.message,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+// ---------------------------
+// Reset Password
+// ---------------------------
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.json({
+        success: false,
+        message: "Email, OTP, and new password are required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    // Verify OTP first
+    if (!isOTPVerified(email)) {
+      const verification = verifyOTP(email, otp);
+      if (!verification.valid) {
+        return res.json({ success: false, message: verification.message });
+      }
+    }
+
+    // Find user
+    let user = null;
+    let tableName = null;
+    let idField = null;
+
+    // Check Consumers table
+    const [consumers] = await db().query(
+      "SELECT * FROM Consumers WHERE email = ?",
+      [email]
+    );
+
+    if (consumers.length > 0) {
+      user = consumers[0];
+      tableName = "Consumers";
+      idField = "consumer_id";
+    } else {
+      // Check Employee table
+      const [employees] = await db().query(
+        "SELECT * FROM Employee WHERE email = ?",
+        [email]
+      );
+
+      if (employees.length > 0) {
+        user = employees[0];
+        tableName = "Employee";
+        idField = "employee_id";
+      }
+    }
+
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password in database
+    await db().query(
+      `UPDATE ${tableName} SET password = ? WHERE email = ?`,
+      [hashedPassword, email]
+    );
+
+    // Remove OTP after successful password reset
+    removeOTP(email);
+
+    return res.json({
+      success: true,
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+export { signupConsumer, login, forgotPassword, verifyOtp, resetPassword };
