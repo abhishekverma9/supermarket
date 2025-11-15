@@ -13,7 +13,7 @@ export const AuthContextProvider = ({ children }) => {
     const [products, setProducts] = useState([])
     const [cart, setCart] = useState([])
     const [orders, setOrders] = useState([])
-    const [role, setRole] = useState("owner");
+    const [role, setRole] = useState(localStorage.getItem("role") ? localStorage.getItem("role") : "owner");
     const [allOrders, setAllOrders] = useState([])
     // Fetch cart items
     const fetchCartItems = async () => {

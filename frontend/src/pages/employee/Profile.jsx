@@ -74,12 +74,12 @@ const EmpProfile = () => {
       formData.append("phone", phone);
       if (photo) formData.append("profile_photo", photo);
 
-      const { data } = await axios.put(
-        `${backendUrl}/api/employee/profile/update`,
+      const { data } = await axios.post(
+        `${backendUrl}/api/employee/update-profile`,
         formData,
         {
           headers: { token },
-        }
+        } 
       );
 
       if (data.success) {

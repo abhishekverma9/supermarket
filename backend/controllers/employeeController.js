@@ -1,4 +1,6 @@
 import { db } from "../config/db.js";
+import imagekit from "../config/imageKit.js";
+import { sendOrderDeliveredEmail, sendOrderCancellationEmail, sendOrderConfirmationEmail, sendOutForDeliveryEmail } from "../utils/emailService.js";
 
 const getAllOrders = async (req, res) => {
   try {
@@ -49,22 +51,81 @@ const updateOrderStatus = async (req, res) => {
   try {
     const { order_id } = req.params;
     const { status } = req.body;
-    const validStatuses = ["Pending", "Confirmed", "Shipped", "Delivered", "Cancelled"];
+
+    const validStatuses = ["Pending","Confirmed", "Shipped", "Out for Delivery", "Delivered", "Cancelled" ];
+
     if (!order_id) {
       return res.json({ success: false, message: "Order ID is required" });
     }
+
     if (!status || !validStatuses.includes(status)) {
       return res.json({ success: false, message: "Invalid status value" });
     }
-    // Update status
-    const [result] = await db().query(
-      "UPDATE Orders SET status = ? WHERE order_id = ?",
-      [status, order_id]
+
+    // 1️⃣ FETCH FULL ORDER DETAILS (email, items, delivery)
+    const [[order]] = await db().query(
+      "SELECT * FROM Orders WHERE order_id = ?",
+      [order_id]
     );
-    if (result.affectedRows === 0) {
-      return res.json({ success: false, message: "Order not found" });
+
+    if (!order) return res.json({ success: false, message: "Order not found" });
+
+    const [[consumer]] = await db().query(
+      "SELECT email FROM Consumers WHERE consumer_id = ?",
+      [order.consumer_id]
+    );
+
+    const [items] = await db().query(
+      `SELECT OI.*, P.name, P.image 
+       FROM Order_Items OI 
+       JOIN Product P ON OI.product_id = P.product_id
+       WHERE OI.order_id = ?`,
+      [order_id]
+    );
+
+    const [[delivery]] = await db().query(
+      "SELECT * FROM delivery_address WHERE order_id = ?",
+      [order_id]
+    );
+
+    const fullOrder = {
+      ...order,
+      items,
+      delivery,
+      email: consumer.email
+    };
+
+    // 2️⃣ UPDATE STATUS
+    await db().query("UPDATE Orders SET status = ? WHERE order_id = ?", [
+      status,
+      order_id,
+    ]);
+
+    // 3️⃣ SEND EMAIL BASED ON STATUS
+    switch (status) {
+      case "Out for Delivery":
+        await sendOutForDeliveryEmail(consumer.email, fullOrder);
+        break;
+
+      case "Delivered":
+        await sendOrderDeliveredEmail(consumer.email, fullOrder);
+        break;
+
+      case "Cancelled":
+        await sendOrderCancellationEmail(consumer.email, fullOrder);
+        break;
+
+      default: 
+        break;
     }
-    res.json({ success: true, message: "Order status updated successfully", order_id, status });
+
+    return res.json({
+      success: true,
+      message: `Order status updated to ${status} and email sent.`,
+      order_id,
+      status,
+    });
+
   } catch (error) {
     console.error(error);
     res.json({ success: false, message: error.message });
@@ -127,7 +188,7 @@ const updateEmpProfile = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 }
-const getTeamMember = async (req,res) => {
+const getTeamMember = async (req, res) => {
   try {
     const managerId = req.userId;
     const [employees] = await db().query(
@@ -145,4 +206,4 @@ const getTeamMember = async (req,res) => {
     res.json({ success: false, message: error.message });
   }
 }
-export { getAllOrders, updateOrderStatus, getEmpProfile,updateEmpProfile ,getTeamMember}
+export { getAllOrders, updateOrderStatus, getEmpProfile, updateEmpProfile, getTeamMember }

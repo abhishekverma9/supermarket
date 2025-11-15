@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 
 const CheckoutPage = () => {
   const { cart, checkout } = useContext(AuthContext);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     receiver_name: "",
@@ -33,9 +34,26 @@ const CheckoutPage = () => {
     0
   );
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    checkout(formData);
+    if (isSubmitting) return; // Prevent multiple submissions
+    
+    setIsSubmitting(true);
+    
+    // Fallback: Reset state after 5 seconds if navigation doesn't happen
+    const timeoutId = setTimeout(() => {
+      setIsSubmitting(false);
+    }, 5000);
+    
+    try {
+      await checkout(formData);
+      // If checkout succeeds, it navigates away, so clearTimeout and state reset not needed
+      clearTimeout(timeoutId);
+    } catch (error) {
+      // Error is already handled in AuthContext, but we need to reset state
+      clearTimeout(timeoutId);
+      setIsSubmitting(false);
+    }
   };
 
   const inputClass =
@@ -71,6 +89,7 @@ const CheckoutPage = () => {
                 placeholder="Receiver's Name"
                 className={inputClass}
                 required
+                disabled={isSubmitting}
               />
               <input
                 type="tel"
@@ -80,6 +99,7 @@ const CheckoutPage = () => {
                 placeholder="Phone Number"
                 className={inputClass}
                 required
+                disabled={isSubmitting}
               />
               <input
                 type="text"
@@ -89,6 +109,7 @@ const CheckoutPage = () => {
                 placeholder="House No."
                 className={inputClass}
                 required
+                disabled={isSubmitting}
               />
               <input
                 type="text"
@@ -98,6 +119,7 @@ const CheckoutPage = () => {
                 placeholder="Street"
                 className={inputClass}
                 required
+                disabled={isSubmitting}
               />
               <input
                 type="text"
@@ -106,6 +128,7 @@ const CheckoutPage = () => {
                 onChange={handleChange}
                 placeholder="Building / Landmark"
                 className={inputClass}
+                disabled={isSubmitting}
               />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input
@@ -116,6 +139,7 @@ const CheckoutPage = () => {
                   placeholder="City"
                   className={inputClass}
                   required
+                  disabled={isSubmitting}
                 />
                 <input
                   type="text"
@@ -125,6 +149,7 @@ const CheckoutPage = () => {
                   placeholder="State"
                   className={inputClass}
                   required
+                  disabled={isSubmitting}
                 />
                 <input
                   type="text"
@@ -134,6 +159,7 @@ const CheckoutPage = () => {
                   placeholder="Pincode"
                   className={inputClass}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
               <textarea
@@ -143,6 +169,7 @@ const CheckoutPage = () => {
                 placeholder="Delivery Instructions (Optional)"
                 className={`${inputClass} min-h-[100px]`}
                 rows="3"
+                disabled={isSubmitting}
               ></textarea>
             </div>
           </div>
@@ -185,10 +212,20 @@ const CheckoutPage = () => {
             {/* Place Order */}
             <button
               type="submit"
-              disabled={numericCart.length === 0}
-              className="mt-6 w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105 disabled:bg-gray-500 disabled:hover:scale-100 disabled:cursor-not-allowed"
+              disabled={numericCart.length === 0 || isSubmitting}
+              className="mt-6 w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105 disabled:bg-gray-500 disabled:hover:scale-100 disabled:cursor-not-allowed disabled:opacity-70 flex items-center justify-center gap-2"
             >
-              Place Order
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Placing Order...</span>
+                </>
+              ) : (
+                "Place Order"
+              )}
             </button>
           </div>
         </form>

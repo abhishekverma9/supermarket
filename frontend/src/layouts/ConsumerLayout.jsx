@@ -32,7 +32,7 @@ const ConsumerLayout = () => {
   const linkClass = ({ isActive }) =>
     `flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
       isActive
-        ? "bg-gradient-to-r from-[#FF8C00] to-[#FF4B91] text-black shadow-md font-semibold"
+        ? "bg-gradient-to-r from-[#FF8C00] to-[#FF4B91] text-orange-400 border border-orange-500 shadow-md font-semibold"
         : "text-[#F5F5F5] hover:text-[#FF8C00] hover:bg-[#2E2E2E]"
     }`;
 
@@ -131,7 +131,7 @@ const ConsumerLayout = () => {
           <NavLink to="/consumer/cart" className={linkClass}>
             <div className="flex items-center justify-center relative gap-1">
               <FaShoppingCart /> Cart
-              <span className="absolute -top-2 -right-4 bg-[#FF4B91] w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold">
+              <span className="absolute -top-2 text-black -right-4 bg-[#FF4B91] w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold">
                 {getTotalCartItems(cart)}
               </span>
             </div>
@@ -139,7 +139,7 @@ const ConsumerLayout = () => {
 
           <button
             onClick={() => setChatbotOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-[#FF8C00] to-[#FF4B91] hover:from-[#ffa733] hover:to-[#FF6BA3] text-black shadow-md transition-all relative group"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-[#FF8C00] to-[#FF4B91] hover:from-[#ffa733] hover:to-[#FF6BA3] shadow-md transition-all relative group"
             title="Open Chatbot"
           >
             <FaComments />

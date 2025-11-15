@@ -2,6 +2,7 @@ import express from 'express'
 import 'dotenv/config'
 import cors from 'cors'
 import { connectDB } from './config/db.js'
+import { testEmailConfig } from './utils/emailService.js'
 import authRouter from './routes/authRoutes.js'
 import productRouter from './routes/productRoutes.js'
 import cartRouter from './routes/cartRoutes.js'
@@ -17,6 +18,9 @@ const port = process.env.PORT || 3000
 app.use(express.json())
 app.use(cors())
 await connectDB();
+
+// Test email configuration
+await testEmailConfig();
 
 //Api endpoints
 app.use('/api/auth',authRouter)
