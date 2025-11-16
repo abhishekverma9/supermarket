@@ -82,7 +82,7 @@ const Dashboard = () => {
             return (
               <div
                 key={p.product_id}
-                className="bg-[#2E2E2E] rounded-2xl shadow-lg overflow-hidden flex flex-col transition transform hover:scale-105 hover:shadow-[#FF8C00]/30"
+                className="bg-[#2E2E2E] rounded-2xl shadow-lg overflow-hidden flex flex-col transition transform hover:-translate-y-1 hover:shadow-[#FF8C00]/60"
               >
                 <img
                   src={imgSrc}
