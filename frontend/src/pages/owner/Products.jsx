@@ -80,24 +80,24 @@ const OwnerProducts = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-6 md:p-12">
+    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-4 sm:p-6 md:p-12">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7 }}
-        className="mb-8"
+        className="mb-6 sm:mb-8"
       >
-        <h2 className="text-4xl font-extrabold mb-2 text-[#FF8C00] drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 text-[#FF8C00] drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
           All Products
         </h2>
-        <p className="text-gray-400 text-lg">
+        <p className="text-gray-400 text-sm sm:text-base md:text-lg">
           Manage products and discounts
         </p>
       </motion.div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}

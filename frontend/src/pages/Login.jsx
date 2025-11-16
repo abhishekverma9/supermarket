@@ -185,17 +185,17 @@ const LoginPage = () => {
         initial={{ opacity: 0, x: -60 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 1 }}
-        className="flex-1 flex flex-col items-center justify-center p-10 md:p-16 relative"
+        className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 md:p-16 relative"
       >
         <img
           src="/logooo.png"
           alt="Shop4Ever Logo"
-          className="w-28 md:w-52 lg:w-80 mb-4 drop-shadow-[0_0_20px_rgba(255,140,0,0.6)]"
+          className="w-20 sm:w-28 md:w-52 lg:w-80 mb-4 drop-shadow-[0_0_20px_rgba(255,140,0,0.6)]"
         />
-        <h1 className="text-5xl md:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C00] via-[#FF4B91] to-[#8A2BE2] animate-gradient-x drop-shadow-[0_0_15px_rgba(255,140,0,0.5)]">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C00] via-[#FF4B91] to-[#8A2BE2] animate-gradient-x drop-shadow-[0_0_15px_rgba(255,140,0,0.5)]">
           Shop4Ever
         </h1>
-        <p className="text-lg mt-4 max-w-md text-center text-gray-300">
+        <p className="text-sm sm:text-base md:text-lg mt-4 max-w-md text-center text-gray-300 px-4">
           Your one-stop platform for smarter shopping, faster checkout, and better deals — every day.
         </p>
       </motion.div>
@@ -205,15 +205,15 @@ const LoginPage = () => {
         initial={{ opacity: 0, x: 60 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 1 }}
-        className="flex-1 flex items-center justify-center p-6 md:p-12"
+        className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-12"
       >
-        <div className="w-full max-w-md bg-[#2E2E2E]/70 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30">
-          <h2 className="text-3xl font-bold text-center mb-6 text-[#FF8C00]">
+        <div className="w-full max-w-md bg-[#2E2E2E]/70 backdrop-blur-xl p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-[#FF8C00]">
             {mode === "signup" ? "Create Account" : "Welcome Back"}
           </h2>
 
           {/* Role Selector */}
-          <div className="flex justify-center gap-3 mb-5">
+          <div className="flex justify-center gap-2 sm:gap-3 mb-4 sm:mb-5">
             {["owner", "employee", "consumer"].map((r) => (
               <button
                 key={r}
@@ -222,7 +222,7 @@ const LoginPage = () => {
                   setRole(r);
                   setMode(r === "consumer" ? mode : "login");
                 }}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                   role === r
                     ? "bg-[#FF8C00] text-black shadow-md"
                     : "bg-[#1e1e1e] text-gray-300 hover:bg-[#2e2e2e]"
@@ -346,10 +346,10 @@ const LoginPage = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#2E2E2E] rounded-2xl p-8 max-w-md w-full border border-[#FF8C00]/30 shadow-2xl"
+            className="bg-[#2E2E2E] rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full border border-[#FF8C00]/30 shadow-2xl"
           >
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-[#FF8C00]">Reset Password</h3>
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <h3 className="text-xl sm:text-2xl font-bold text-[#FF8C00]">Reset Password</h3>
               <button
                 onClick={() => {
                   setForgotPasswordModal(false);

@@ -128,7 +128,7 @@ const ProductDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-6 md:p-12">
+    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-4 sm:p-6 md:p-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -138,13 +138,13 @@ const ProductDetails = () => {
         {/* Back Button */}
         <button
           onClick={() => navigate("/consumer")}
-          className="mb-6 flex items-center gap-2 text-gray-400 hover:text-[#FF8C00] transition-colors"
+          className="mb-4 sm:mb-6 flex items-center gap-2 text-sm sm:text-base text-gray-400 hover:text-[#FF8C00] transition-colors"
         >
           <FaArrowLeft />
           <span>Back to Products</span>
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12">
           {/* Product Image */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -154,7 +154,7 @@ const ProductDetails = () => {
             <img
               src={imageUrl || product.product_image || "https://via.placeholder.com/600"}
               alt={product.name}
-              className="w-full h-[500px] object-cover"
+              className="w-full h-[300px] sm:h-[400px] lg:h-[500px] object-cover"
             />
             {discount > 0 && (
               <span className="absolute top-4 right-4 bg-[#FF8C00] text-black text-sm font-bold px-3 py-1 rounded-full">
@@ -167,37 +167,37 @@ const ProductDetails = () => {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-[#2E2E2E]/70 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30"
+            className="bg-[#2E2E2E]/70 backdrop-blur-xl p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30"
           >
-            <h1 className="text-4xl font-bold mb-4 text-gray-100">{product.name}</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 text-gray-100">{product.name}</h1>
 
             {/* Rating */}
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
               <div className="flex items-center gap-1">
                 {renderStars(Math.round(ratingData.averageRating))}
               </div>
-              <span className="text-lg font-semibold text-gray-300">
+              <span className="text-base sm:text-lg font-semibold text-gray-300">
                 {ratingData.averageRating.toFixed(1)}
               </span>
-              <span className="text-gray-500">({ratingData.totalReviews} reviews)</span>
+              <span className="text-sm sm:text-base text-gray-500">({ratingData.totalReviews} reviews)</span>
             </div>
 
             {/* Price */}
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
               {discount > 0 ? (
-                <div className="flex items-center gap-4">
-                  <span className="text-4xl font-bold text-[#FF8C00]">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#FF8C00]">
                     ₹{finalPrice.toFixed(2)}
                   </span>
-                  <span className="text-2xl text-gray-500 line-through">
+                  <span className="text-lg sm:text-xl md:text-2xl text-gray-500 line-through">
                     ₹{price.toFixed(2)}
                   </span>
-                  <span className="text-green-500 font-semibold">
+                  <span className="text-sm sm:text-base text-green-500 font-semibold">
                     Save ₹{(price - finalPrice).toFixed(2)}
                   </span>
                 </div>
               ) : (
-                <span className="text-4xl font-bold text-[#FF8C00]">
+                <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#FF8C00]">
                   ₹{price.toFixed(2)}
                 </span>
               )}

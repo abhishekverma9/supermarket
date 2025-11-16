@@ -145,7 +145,7 @@ const ProductGrid = () => {
   }, [products, searchQuery, selectedFilters]);
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-6 md:p-12">
+    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-4 sm:p-6 md:p-12">
       {/* --- NEW: Filter Sidebar Component --- */}
       <FilterSidebar
         isOpen={isFilterOpen}
@@ -157,8 +157,8 @@ const ProductGrid = () => {
       />
 
       {/* Header and New Filter Button */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-        <h2 className="text-3xl font-bold text-center text-[#FF8C00]">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center text-[#FF8C00]">
           {searchQuery.trim()
             ? `Results for "${searchQuery}"`
             : "Featured Products"}
@@ -167,7 +167,7 @@ const ProductGrid = () => {
         {/* --- NEW: Filter Button --- */}
         <button
           onClick={() => setIsFilterOpen(true)}
-          className="flex items-center justify-center gap-2 px-5 py-2 bg-[#1e1e1e] border border-[#FF8C00]/50 rounded-lg text-[#FF8C00] font-semibold hover:bg-[#FF8C00] hover:text-black transition-colors"
+          className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-[#1e1e1e] border border-[#FF8C00]/50 rounded-lg text-[#FF8C00] font-semibold hover:bg-[#FF8C00] hover:text-black transition-colors text-sm sm:text-base"
         >
           <FaFilter />
           <span>Filters</span>
@@ -176,7 +176,7 @@ const ProductGrid = () => {
 
       {/* Product Grid */}
       {filteredProducts.length === 0 ? (
-        <p className="text-center text-gray-400 text-lg">
+        <p className="text-center text-gray-400 text-base sm:text-lg p-4 sm:p-10">
           {searchQuery.trim() ||
           selectedFilters.categories.length > 0 ||
           selectedFilters.priceRange
@@ -185,7 +185,7 @@ const ProductGrid = () => {
         </p>
       ) : (
         <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8"
           variants={gridContainerVariants}
           initial="hidden"
           animate="visible"

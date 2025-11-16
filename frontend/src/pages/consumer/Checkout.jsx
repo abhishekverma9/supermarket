@@ -60,24 +60,24 @@ const CheckoutPage = () => {
     "w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40 outline-none transition-all duration-200";
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-6 md:p-12 flex justify-center items-start">
+    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-4 sm:p-6 md:p-12 flex justify-center items-start">
       <motion.div
         className="w-full max-w-6xl"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7 }}
       >
-        <h2 className="text-3xl font-bold text-center mb-8 text-[#FF8C00]">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-8 text-[#FF8C00]">
           Checkout
         </h2>
 
         <form
           onSubmit={handleSubmit}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
         >
           {/* Left: Shipping Form */}
-          <div className="bg-[#2E2E2E]/70 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30">
-            <h3 className="font-semibold text-lg mb-6 text-[#FF8C00]">
+          <div className="bg-[#2E2E2E]/70 backdrop-blur-xl p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30">
+            <h3 className="font-semibold text-base sm:text-lg mb-4 sm:mb-6 text-[#FF8C00]">
               Shipping Information
             </h3>
             <div className="space-y-4">
@@ -175,8 +175,8 @@ const CheckoutPage = () => {
           </div>
 
           {/* Right: Order Summary */}
-          <div className="bg-[#2E2E2E]/70 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30 flex flex-col">
-            <h3 className="font-semibold text-lg mb-6 text-[#FF8C00]">
+          <div className="bg-[#2E2E2E]/70 backdrop-blur-xl p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30 flex flex-col">
+            <h3 className="font-semibold text-base sm:text-lg mb-4 sm:mb-6 text-[#FF8C00]">
               Order Summary
             </h3>
             <div className="flex-1">
