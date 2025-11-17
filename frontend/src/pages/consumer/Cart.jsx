@@ -1,4 +1,4 @@
-import React, { useEffect, useContext } from "react";
+import React, { useEffect, useContext, useState } from "react";
 import { FaTrash, FaPlus, FaMinus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
@@ -9,11 +9,46 @@ const CartPage = () => {
   const { cart, fetchCartItems, updateCartItem, removeCartItem } =
     useContext(AuthContext);
 
-  useEffect(() => {
-    fetchCartItems(); // fetch cart when page loads
-  }, [fetchCartItems]); // Added dependency
+  const [cartWithImages, setCartWithImages] = useState([]);
 
-  const totalAmount = cart.reduce(
+  // Fetch image from Unsplash inside this file only
+  const fetchProductImage = async (query) => {
+    const apiKey = import.meta.env.VITE_UNSPLASH_API_KEY;
+
+    try {
+      const res = await fetch(
+        `https://api.unsplash.com/search/photos?query=${query}&per_page=1&client_id=${apiKey}`
+      );
+      const data = await res.json();
+
+      if (data?.results?.length > 0) {
+        return data.results[0].urls.small;
+      }
+      return "https://via.placeholder.com/80";
+    } catch (err) {
+      console.error("Unsplash error:", err);
+      return "https://via.placeholder.com/80";
+    }
+  };
+
+  useEffect(() => {
+    const loadCartWithImages = async () => {
+      await fetchCartItems();
+
+      const updated = await Promise.all(
+        cart.map(async (item) => {
+          const img = await fetchProductImage(item.name);
+          return { ...item, product_image: img };
+        })
+      );
+
+      setCartWithImages(updated);
+    };
+
+    loadCartWithImages();
+  }, [fetchCartItems, cart]);
+
+  const totalAmount = cartWithImages.reduce(
     (sum, item) => sum + item.quantity * Number(item.final_price || 0),
     0
   );
@@ -30,14 +65,14 @@ const CartPage = () => {
           Your Cart
         </h2>
 
-        {cart.length === 0 ? (
+        {cartWithImages.length === 0 ? (
           <p className="text-center text-gray-400 text-lg p-10">
             Your cart is empty.
           </p>
         ) : (
           <>
             <div className="flex flex-col gap-4">
-              {cart.map((item) => (
+              {cartWithImages.map((item) => (
                 <motion.div
                   key={item.cart_id}
                   className="bg-[#1e1e1e] rounded-xl shadow-lg border border-[#FF8C00]/20 p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4"
@@ -47,7 +82,7 @@ const CartPage = () => {
                 >
                   {/* Product Image */}
                   <img
-                    src={item.product_image || "https://via.placeholder.com/80"}
+                    src={item.product_image}
                     alt={item.name}
                     className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg flex-shrink-0"
                   />
@@ -89,7 +124,9 @@ const CartPage = () => {
                   {/* Price and Remove */}
                   <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 w-full sm:w-auto">
                     <p className="font-semibold text-base sm:text-lg text-gray-100">
-                      ₹{(item.quantity * Number(item.final_price || 0)).toFixed(2)}
+                      ₹{(item.quantity * Number(item.final_price || 0)).toFixed(
+                        2
+                      )}
                     </p>
                     <button
                       onClick={() => removeCartItem(item.cart_id)}
