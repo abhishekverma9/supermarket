@@ -13,20 +13,23 @@ import Orders from './pages/consumer/Orders'
 import Cart from './pages/consumer/Cart'
 import { ToastContainer } from 'react-toastify'
 import Checkout from './pages/consumer/Checkout'
+import ProductDetails from './pages/consumer/ProductDetails'
 import AllOrders from './pages/employee/Orders'
 import EmpProducts from './pages/employee/Products'
 import EmpProfile from './pages/employee/Profile'
 import OwnerEmployees from './pages/owner/Employees'
 import OwnerProducts from './pages/owner/Products'
 import OwnerOrders from './pages/owner/Orders'
+import Features from './pages/Features'
 
 const App = () => {
   return (
-    <div className='bg-gradient-to-r from-indigo-900 via-purple-800 to-gray-900 animate-gradient-x'>
+    <div className='min-h-screen bg-[#121212] text-[#F5F5F5]'>
       <ToastContainer/>
       <Routes>
         <Route path='/' element={<Home />} />
         <Route path='/login' element={<LoginPage />} />
+        <Route path='/features' element={<Features />} />
         {/* Owner protected routes */}
         <Route element={<ProtectedRoute roles={["owner"]} />}>
           <Route element={<OwnerLayout />}>
@@ -51,6 +54,7 @@ const App = () => {
         <Route element={<ProtectedRoute roles={["consumer"]} />}>
           <Route element={<ConsumerLayout />}>
             <Route path="/consumer" element={<Dashboard/>} />
+            <Route path="/consumer/product/:id" element={<ProductDetails/>} />
             <Route path="/consumer/orders" element={<Orders />} />
             <Route path="/consumer/cart" element={<Cart />} />
             <Route path="/consumer/checkout" element={<Checkout/>} />

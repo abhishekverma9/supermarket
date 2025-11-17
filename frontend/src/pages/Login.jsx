@@ -1,8 +1,9 @@
 import axios from "axios";
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
+import { motion } from "framer-motion";
 
 const LoginPage = () => {
   const [mode, setMode] = useState("login");
@@ -10,166 +11,669 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [phone, setPhone] = useState("");
+  const [wrongPasswordAttempted, setWrongPasswordAttempted] = useState(false);
+  const [forgotPasswordModal, setForgotPasswordModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [forgotPasswordStep, setForgotPasswordStep] = useState("email"); // "email", "otp", "reset"
+  const [otpTimer, setOtpTimer] = useState(60); // 60 seconds
+  const [canResend, setCanResend] = useState(false);
+  
+  // New states for login/signup OTP flow
+  const [authStep, setAuthStep] = useState("form"); // "form" or "otp"
+  const [authOtp, setAuthOtp] = useState("");
+  const [authOtpTimer, setAuthOtpTimer] = useState(60);
+  const [canResendAuthOtp, setCanResendAuthOtp] = useState(false);
+  const authTimerRef = useRef(null);
+  
+  const timerRef = useRef(null);
   const navigate = useNavigate();
-  const { token, setToken, backendUrl, role, setRole } = useContext(AuthContext)
+  const { token, setToken, backendUrl, role, setRole } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // prevent page reload
-    setIsSubmitting(true)
+    e.preventDefault();
     try {
-      if (mode === 'signup') {
-        const { data } = await axios.post(backendUrl + '/api/auth/signup', { first_name: firstName, last_name: lastName, email, password, phone })
+      if (mode === "signup") {
+        // Send signup OTP
+        const { data } = await axios.post(`${backendUrl}/api/auth/send-signup-otp`, {
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          password,
+          phone,
+        });
         if (data.success) {
-          setToken(data.token)
-          localStorage.setItem("role", role)
-          localStorage.setItem("token", data.token)
-          navigate('/consumer')
+          toast.success(data.message || "OTP sent to your email");
+          setAuthStep("otp");
+          setAuthOtpTimer(60);
+          setCanResendAuthOtp(false);
+          if (data.otp) {
+            // Development mode - show OTP in console
+            console.log("OTP (Development):", data.otp);
+          }
         } else {
-          toast.error(data.message)
+          toast.error(data.message);
         }
       } else {
-        const { data } = await axios.post(backendUrl + '/api/auth/login', { email, password, role })
+        // Send login OTP
+        const { data } = await axios.post(`${backendUrl}/api/auth/send-login-otp`, {
+          email,
+          password,
+          role,
+        });
         if (data.success) {
-          setToken(data.token)
-          localStorage.setItem("token", data.token)
-          localStorage.setItem("role", role)
-          navigate(`/${role}`)
+          toast.success(data.message || "OTP sent to your email");
+          setAuthStep("otp");
+          setAuthOtpTimer(60);
+          setCanResendAuthOtp(false);
+          setWrongPasswordAttempted(false);
+          if (data.otp) {
+            // Development mode - show OTP in console
+            console.log("OTP (Development):", data.otp);
+          }
         } else {
-          toast.error(data.message)
+          toast.error(data.message);
+          setWrongPasswordAttempted(true);
         }
       }
     } catch (error) {
-      toast.error(error.message)
-    } finally {
-      setIsSubmitting(false)
+      toast.error(error.response?.data?.message || error.message);
+      setWrongPasswordAttempted(true);
+    }
+  };
+
+  const handleVerifyAuthOtp = async () => {
+    try {
+      if (mode === "signup") {
+        const { data } = await axios.post(`${backendUrl}/api/auth/verify-signup-otp`, {
+          email,
+          otp: authOtp,
+        });
+        if (data.success) {
+          setToken(data.token);
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("role", "consumer");
+          toast.success("Account created successfully!");
+          navigate("/consumer");
+        } else {
+          toast.error(data.message);
+        }
+      } else {
+        const { data } = await axios.post(`${backendUrl}/api/auth/verify-login-otp`, {
+          email,
+          otp: authOtp,
+        });
+        if (data.success) {
+          setToken(data.token);
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("role", role);
+          toast.success("Login successful!");
+          navigate(`/${role}`);
+        } else {
+          toast.error(data.message);
+        }
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
+    }
+  };
+
+  const handleResendAuthOtp = async () => {
+    if (!canResendAuthOtp) return;
+    
+    try {
+      if (mode === "signup") {
+        const { data } = await axios.post(`${backendUrl}/api/auth/send-signup-otp`, {
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          password,
+          phone,
+        });
+        if (data.success) {
+          toast.success("OTP resent to your email");
+          setAuthOtpTimer(60);
+          setCanResendAuthOtp(false);
+          if (data.otp) {
+            console.log("OTP (Development):", data.otp);
+          }
+        } else {
+          toast.error(data.message);
+        }
+      } else {
+        const { data } = await axios.post(`${backendUrl}/api/auth/send-login-otp`, {
+          email,
+          password,
+          role,
+        });
+        if (data.success) {
+          toast.success("OTP resent to your email");
+          setAuthOtpTimer(60);
+          setCanResendAuthOtp(false);
+          if (data.otp) {
+            console.log("OTP (Development):", data.otp);
+          }
+        } else {
+          toast.error(data.message);
+        }
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
+    }
+  };
+
+  // Timer effect for forgot password OTP countdown
+  useEffect(() => {
+    if (forgotPasswordStep === "otp" && otpTimer > 0) {
+      timerRef.current = setInterval(() => {
+        setOtpTimer((prev) => {
+          if (prev <= 1) {
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [forgotPasswordStep, otpTimer]);
+
+  // Timer effect for login/signup OTP countdown
+  useEffect(() => {
+    if (authStep === "otp" && authOtpTimer > 0) {
+      authTimerRef.current = setInterval(() => {
+        setAuthOtpTimer((prev) => {
+          if (prev <= 1) {
+            setCanResendAuthOtp(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (authTimerRef.current) {
+        clearInterval(authTimerRef.current);
+        authTimerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (authTimerRef.current) {
+        clearInterval(authTimerRef.current);
+      }
+    };
+  }, [authStep, authOtpTimer]);
+
+  const handleForgotPasswordEmail = async () => {
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/auth/forgot-password`, {
+        email: forgotEmail,
+      });
+      if (data.success) {
+        toast.success("OTP sent to your email");
+        setForgotPasswordStep("otp");
+        setOtpTimer(60); // Reset timer to 60 seconds
+        setCanResend(false);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send OTP");
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/auth/forgot-password`, {
+        email: forgotEmail,
+        resend: true,
+      });
+      if (data.success) {
+        toast.success("OTP resent to your email");
+        setOtpTimer(60); // Reset timer to 60 seconds
+        setCanResend(false);
+        setOtp(""); // Clear previous OTP input
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to resend OTP");
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/auth/verify-otp`, {
+        email: forgotEmail,
+        otp,
+      });
+      if (data.success) {
+        toast.success("OTP verified successfully");
+        setForgotPasswordStep("reset");
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Invalid OTP");
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/auth/reset-password`, {
+        email: forgotEmail,
+        otp,
+        newPassword,
+      });
+      if (data.success) {
+        toast.success("Password reset successfully");
+        setForgotPasswordModal(false);
+        setForgotPasswordStep("email");
+        setForgotEmail("");
+        setOtp("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to reset password");
     }
   };
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md p-8 rounded-2xl bg-white/70 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-700 shadow-xl">
-        <h1 className="text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-rose-500 mb-6">
-          {mode === "signup" ? "Sign Up" : "Login"}
+    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-[#FF8C00]/50 via-[#8A2BE2]/60 to-[#121212] text-[#F5F5F5] overflow-hidden">
+      {/* Left Brand Section */}
+      <motion.div
+        initial={{ opacity: 0, x: -60 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 1 }}
+        className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 md:p-16 relative"
+      >
+        <img
+          src="/logooo.png"
+          alt="Shop4Ever Logo"
+          className="w-20 sm:w-28 md:w-52 lg:w-80 mb-4 drop-shadow-[0_0_20px_rgba(255,140,0,0.6)]"
+        />
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C00] via-[#FF4B91] to-[#8A2BE2] animate-gradient-x drop-shadow-[0_0_15px_rgba(255,140,0,0.5)]">
+          Shop4Ever
         </h1>
+        <p className="text-sm sm:text-base md:text-lg mt-4 max-w-md text-center text-gray-300 px-4">
+          Your one-stop platform for smarter shopping, faster checkout, and better deals — every day.
+        </p>
+      </motion.div>
 
-        {/* Role Selector */}
-        <div className="flex justify-center gap-3 mb-4">
-          <button
-            type="button"
-            onClick={() => { setRole("owner"); setMode("login"); }}
-            className={`px-3 py-2 rounded-lg text-sm font-medium ${role === "owner" ? "bg-amber-600 text-white" : "bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200"}`}
-          >
-            Owner
-          </button>
-          <button
-            type="button"
-            onClick={() => { setRole("employee"); setMode("login"); }}
-            className={`px-3 py-2 rounded-lg text-sm font-medium ${role === "employee" ? "bg-amber-600 text-white" : "bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200"}`}
-          >
-            Employee
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole("consumer")}
-            className={`px-3 py-2 rounded-lg text-sm font-medium ${role === "consumer" ? "bg-amber-600 text-white" : "bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200"}`}
-          >
-            Consumer
-          </button>
-        </div>
+      {/* Right Form Section */}
+      <motion.div
+        initial={{ opacity: 0, x: 60 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 1 }}
+        className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-12"
+      >
+        <div className="w-full max-w-md bg-[#2E2E2E]/70 backdrop-blur-xl p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-[#FF8C00]">
+            {mode === "signup" ? "Create Account" : "Welcome Back"}
+          </h2>
 
-        {/* Form */}
-        <form className="space-y-3" onSubmit={handleSubmit}>
-          {role === "consumer" && mode === "signup" && (
-            <>
+          {/* Role Selector */}
+          <div className="flex justify-center gap-2 sm:gap-3 mb-4 sm:mb-5">
+            {["owner", "employee", "consumer"].map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => {
+                  setRole(r);
+                  setMode(r === "consumer" ? mode : "login");
+                  setAuthStep("form");
+                  setAuthOtp("");
+                }}
+                className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
+                  role === r
+                    ? "bg-[#FF8C00] text-black shadow-md"
+                    : "bg-[#1e1e1e] text-gray-300 hover:bg-[#2e2e2e]"
+                }`}
+              >
+                {r.charAt(0).toUpperCase() + r.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* OTP Step */}
+          {authStep === "otp" ? (
+            <div className="space-y-4">
+              <p className="text-gray-300 text-center mb-4">
+                Enter the OTP sent to <span className="font-semibold text-[#FF8C00]">{email}</span>
+              </p>
               <input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                value={authOtp}
+                onChange={(e) => setAuthOtp(e.target.value)}
                 type="text"
-                placeholder="First Name"
-                className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-100" required
+                placeholder="Enter OTP"
+                maxLength={6}
+                className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40 text-center text-2xl tracking-widest"
+                required
+              />
+              
+              {/* Timer and Resend */}
+              <div className="flex items-center justify-between">
+                {!canResendAuthOtp ? (
+                  <p className="text-sm text-gray-400">
+                    Resend OTP in{" "}
+                    <span className="text-[#FF8C00] font-semibold">
+                      {Math.floor(authOtpTimer / 60)}:{(authOtpTimer % 60).toString().padStart(2, "0")}
+                    </span>
+                  </p>
+                ) : (
+                  <button
+                    onClick={handleResendAuthOtp}
+                    className="text-sm text-[#FF8C00] hover:underline font-medium"
+                  >
+                    Resend OTP
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={handleVerifyAuthOtp}
+                className="w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
+              >
+                Verify OTP
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthStep("form");
+                  setAuthOtp("");
+                  setAuthOtpTimer(60);
+                  setCanResendAuthOtp(false);
+                  if (authTimerRef.current) {
+                    clearInterval(authTimerRef.current);
+                  }
+                }}
+                className="w-full px-4 py-3 rounded-lg bg-[#2E2E2E] hover:bg-[#3a3a3a] text-gray-200 border border-[#FF8C00]/40 transition"
+              >
+                Change Email
+              </button>
+            </div>
+          ) : (
+            /* Form Step */
+            <form className="space-y-3" onSubmit={handleSubmit}>
+              {role === "consumer" && mode === "signup" && (
+                <>
+                  <input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    type="text"
+                    placeholder="First Name"
+                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                    required
+                  />
+                  <input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    type="text"
+                    placeholder="Last Name"
+                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                    required
+                  />
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    type="tel"
+                    placeholder="Phone Number"
+                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                    required
+                  />
+                </>
+              )}
+
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                placeholder="Email"
+                className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                required
               />
               <input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                type="text"
-                placeholder="Last Name"
-                className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-100" required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                placeholder="Password"
+                className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                required
               />
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                type="tel"
-                placeholder="Phone"
-                className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-100" required
-              />
-            </>
+
+              {wrongPasswordAttempted && mode === "login" && (
+                <button
+                  type="button"
+                  onClick={() => setForgotPasswordModal(true)}
+                  className="text-sm text-[#FF8C00] hover:underline text-right w-full"
+                >
+                  Forgot Password?
+                </button>
+              )}
+
+              <button
+                type="submit"
+                className="w-full px-4 py-3 mt-2 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
+              >
+                {mode === "signup"
+                  ? "Sign Up as Consumer"
+                  : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
+              </button>
+            </form>
           )}
 
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            placeholder="Email"
-            className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-100" required
-          />
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            placeholder="Password"
-            className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-100" required
-          />
+          {/* Toggle Mode */}
+          {role === "consumer" && authStep === "form" && (
+            <p className="text-center mt-4 text-sm text-gray-300">
+              {mode === "login" ? (
+                <>
+                  Don't have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("signup");
+                      setAuthStep("form");
+                      setAuthOtp("");
+                    }}
+                    className="text-[#FF8C00] font-medium hover:underline"
+                  >
+                    Sign Up
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("login");
+                      setAuthStep("form");
+                      setAuthOtp("");
+                    }}
+                    className="text-[#FF8C00] font-medium hover:underline"
+                  >
+                    Login
+                  </button>
+                </>
+              )}
+            </p>
+          )}
 
-          <button disabled={isSubmitting}
-            type="submit"
-            className={`w-full px-4 py-3 rounded-lg bg-amber-600 ${isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:bg-amber-700"} text-white font-semibold`}
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="mt-5 w-full px-4 py-3 rounded-lg bg-[#2E2E2E] hover:bg-[#3a3a3a] text-gray-200 border border-[#FF8C00]/40 transition"
           >
-            {mode === "signup" ? "Sign Up as Consumer" : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
+            Back
           </button>
-        </form>
+        </div>
+      </motion.div>
 
-        {/* Toggle Signup/Login - Only for Consumer */}
-        {role === "consumer" && (
-          <p className="text-center mt-3 text-sm text-gray-600 dark:text-gray-300">
-            {mode === "login" ? (
-              <>
-                Don’t have an account?{" "}
+      {/* Forgot Password Modal */}
+      {forgotPasswordModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#2E2E2E] rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full border border-[#FF8C00]/30 shadow-2xl"
+          >
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <h3 className="text-xl sm:text-2xl font-bold text-[#FF8C00]">Reset Password</h3>
+              <button
+                onClick={() => {
+                  setForgotPasswordModal(false);
+                  setForgotPasswordStep("email");
+                  setForgotEmail("");
+                  setOtp("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                  setOtpTimer(60);
+                  setCanResend(false);
+                  if (timerRef.current) {
+                    clearInterval(timerRef.current);
+                  }
+                }}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {forgotPasswordStep === "email" && (
+              <div className="space-y-4">
+                <p className="text-gray-300 mb-4">Enter your email address to receive an OTP</p>
+                <input
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  type="email"
+                  placeholder="Email"
+                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                  required
+                />
                 <button
-                  type="button"
-                  onClick={() => setMode("signup")}
-                  disabled={isSubmitting}
-                  className={`text-amber-600 font-medium transition ${isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:underline"
-                    }`}
+                  onClick={handleForgotPasswordEmail}
+                  className="w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
                 >
-                  Sign Up
+                  Send OTP
                 </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode("login")}
-                  disabled={isSubmitting}
-                  className={`text-amber-600 font-medium transition ${isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:underline"
-                    }`}
-                >
-                  Login
-                </button>
-              </>
+              </div>
             )}
-          </p>
-        )}
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          className={`mt-4 w-full px-4 py-3 rounded-lg ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""} bg-white/60 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-gray-100`}
-        >
-          Back
-        </button>
-      </div>
+
+            {forgotPasswordStep === "otp" && (
+              <div className="space-y-4">
+                <p className="text-gray-300 mb-4">Enter the OTP sent to {forgotEmail}</p>
+                <input
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  type="text"
+                  placeholder="Enter OTP"
+                  maxLength={6}
+                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40 text-center text-2xl tracking-widest"
+                  required
+                />
+                
+                {/* Timer and Resend */}
+                <div className="flex items-center justify-between">
+                  {!canResend ? (
+                    <p className="text-sm text-gray-400">
+                      Resend OTP in{" "}
+                      <span className="text-[#FF8C00] font-semibold">
+                        {Math.floor(otpTimer / 60)}:{(otpTimer % 60).toString().padStart(2, "0")}
+                      </span>
+                    </p>
+                  ) : (
+                    <button
+                      onClick={handleResendOtp}
+                      className="text-sm text-[#FF8C00] hover:underline font-medium"
+                    >
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleVerifyOtp}
+                  className="w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
+                >
+                  Verify OTP
+                </button>
+                <button
+                  onClick={() => {
+                    setForgotPasswordStep("email");
+                    setOtpTimer(60);
+                    setCanResend(false);
+                    if (timerRef.current) {
+                      clearInterval(timerRef.current);
+                    }
+                  }}
+                  className="w-full px-4 py-3 rounded-lg bg-[#2E2E2E] hover:bg-[#3a3a3a] text-gray-200 border border-[#FF8C00]/40 transition"
+                >
+                  Back
+                </button>
+              </div>
+            )}
+
+            {forgotPasswordStep === "reset" && (
+              <div className="space-y-4">
+                <p className="text-gray-300 mb-4">Enter your new password</p>
+                <input
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  type="password"
+                  placeholder="New Password"
+                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                  required
+                />
+                <input
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  type="password"
+                  placeholder="Confirm Password"
+                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                  required
+                />
+                <button
+                  onClick={handleResetPassword}
+                  className="w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
+                >
+                  Reset Password
+                </button>
+                <button
+                  onClick={() => setForgotPasswordStep("otp")}
+                  className="w-full px-4 py-3 rounded-lg bg-[#2E2E2E] hover:bg-[#3a3a3a] text-gray-200 border border-[#FF8C00]/40 transition"
+                >
+                  Back
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

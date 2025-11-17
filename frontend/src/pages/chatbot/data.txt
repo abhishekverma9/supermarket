@@ -1,0 +1,959 @@
+Topic: Product - Organic Apples
+ProductID: 1
+Category: Fruits
+Price: ₹120.50
+Stock: 50
+Description:
+Fresh red apples sourced from local farms. Crisp, sweet, and perfect for snacking or baking.
+
+---
+
+Topic: Product - Whole Wheat Bread
+ProductID: 2
+Category: Bakery
+Price: ₹45.00
+Stock: 30
+Description:
+Soft and healthy bread made with 100% whole wheat flour. High in fiber and perfect for sandwiches.
+
+---
+
+Topic: Product - Almond Milk
+ProductID: 3
+Category: Beverages
+Price: ₹160.00
+Stock: 10
+Description:
+Dairy-free almond milk rich in vitamin D and calcium. A creamy, plant-based alternative to milk.
+
+---
+
+Topic: Product - Brown Rice
+ProductID: 4
+Category: Groceries
+Price: ₹90.00
+Stock: 75
+Description:
+High-fiber long-grain brown rice for healthy meals. Nutty flavor and chewy texture.
+
+---
+
+Topic: Product - Dark Chocolate Bar
+ProductID: 5
+Category: Snacks
+Price: ₹210.00
+Stock: 25
+Description:
+Rich 70% cocoa dark chocolate with no added sugar. A guilt-free indulgence rich in antioxidants.
+
+---
+
+Topic: Product - Orange Juice
+ProductID: 6
+Category: Beverages
+Price: ₹95.00
+Stock: 60
+Description:
+Freshly squeezed orange juice with no preservatives. High in Vitamin C.
+
+---
+
+Topic: Product - Peanut Butter
+ProductID: 8
+Category: Spreads
+Price: ₹175.00
+Stock: 45
+Description:
+Crunchy peanut butter made from roasted peanuts. Great source of protein.
+
+---
+
+Topic: Product - Extra Virgin Olive Oil
+ProductID: 9
+Category: Groceries
+Price: ₹450.00
+Stock: 20
+Description:
+Extra virgin olive oil cold-pressed for pure flavor. Perfect for salads and cooking.
+
+---
+
+Topic: Product - Protein Bars
+ProductID: 10
+Category: Snacks
+Price: ₹220.00
+Stock: 55
+Description:
+Energy-boosting protein bars for workouts and snacks. Contains whey protein and nuts.
+
+---
+
+Topic: Product - Organic Bananas
+ProductID: 15
+Category: Fruits
+Price: ₹60.00
+Stock: 79
+Description:
+Sweet, ripe organic bananas, sold in a bunch of 6. Potassium-rich and energy-boosting.
+
+---
+
+Topic: Product - Baby Spinach
+ProductID: 16
+Category: Vegetables
+Price: ₹55.00
+Stock: 37
+Description:
+Fresh baby spinach leaves, pre-washed in a 200g bag. Ready to eat for salads or smoothies.
+
+---
+
+Topic: Product - Carrots
+ProductID: 17
+Category: Vegetables
+Price: ₹40.25
+Stock: 60
+Description:
+Crunchy whole carrots, 1kg bag. Sweet, fresh, and rich in Vitamin A.
+
+---
+
+Topic: Product - Blueberries
+ProductID: 18
+Category: Fruits
+Price: ₹220.00
+Stock: 24
+Description:
+Fresh antioxidant-rich blueberries in a 125g punnet. Sweet and tart flavor.
+
+---
+
+Topic: Product - Broccoli
+ProductID: 19
+Category: Vegetables
+Price: ₹75.50
+Stock: 35
+Description:
+Fresh green broccoli head, approx 500g. Crunchy and full of vitamins.
+
+---
+
+Topic: Product - Red Grapes
+ProductID: 20
+Category: Fruits
+Price: ₹130.00
+Stock: 45
+Description:
+Sweet and seedless red grapes, 500g pack. A healthy and refreshing snack.
+
+---
+
+Topic: Product - Tomatoes
+ProductID: 21
+Category: Vegetables
+Price: ₹50.00
+Stock: 70
+Description:
+Ripe vine tomatoes, 500g. Juicy and perfect for salads, sauces, or sandwiches.
+
+---
+
+Topic: Product - Avocado
+ProductID: 22
+Category: Fruits
+Price: ₹85.00
+Stock: 50
+Description:
+Ripe and ready Hass avocado, sold singly. Creamy texture, great for toast or guacamole.
+
+---
+
+Topic: Product - Cucumber
+ProductID: 23
+Category: Vegetables
+Price: ₹30.00
+Stock: 65
+Description:
+Fresh English cucumber, sold singly. Crisp skin and hydrating flesh.
+
+---
+
+Topic: Product - Lemons
+ProductID: 24
+Category: Fruits
+Price: ₹45.00
+Stock: 40
+Description:
+Zesty fresh lemons, pack of 3. Perfect for garnishing, cooking, or making lemonade.
+
+---
+
+Topic: Product - Bell Peppers
+ProductID: 25
+Category: Vegetables
+Price: ₹110.00
+Stock: 30
+Description:
+Mixed bell peppers, 3-pack containing Red, Yellow, and Green peppers. Sweet and crunchy.
+
+---
+
+Topic: Product - Cheddar Cheese
+ProductID: 26
+Category: Dairy
+Price: ₹180.00
+Stock: 40
+Description:
+Sharp cheddar cheese block, 200g. Rich flavor, perfect for melting or snacking.
+
+---
+
+Topic: Product - Greek Yogurt
+ProductID: 27
+Category: Dairy
+Price: ₹130.00
+Stock: 50
+Description:
+Plain Greek yogurt, 500g tub. Thick, creamy, and high in probiotics and protein.
+
+---
+
+Topic: Product - Free-Range Eggs
+ProductID: 28
+Category: Dairy
+Price: ₹95.00
+Stock: 100
+Description:
+One dozen (12) large free-range eggs. Farm fresh with rich yolks.
+
+---
+
+Topic: Product - Sourdough Loaf
+ProductID: 29
+Category: Bakery
+Price: ₹80.00
+Stock: 20
+Description:
+Artisanal sourdough bread with a crispy crust and soft, airy center.
+
+---
+
+Topic: Product - Croissants
+ProductID: 30
+Category: Bakery
+Price: ₹110.00
+Stock: 25
+Description:
+Pack of 4 butter croissants. Flaky, golden pastry layers.
+
+---
+
+Topic: Product - Whole Milk
+ProductID: 31
+Category: Dairy
+Price: ₹58.00
+Stock: 60
+Description:
+Fresh whole milk, 1 Litre carton. Creamy and rich in calcium.
+
+---
+
+Topic: Product - Salted Butter
+ProductID: 32
+Category: Dairy
+Price: ₹210.00
+Stock: 40
+Description:
+Salted butter block, 250g. Creamy butter perfect for spreading or baking.
+
+---
+
+Topic: Product - French Baguette
+ProductID: 33
+Category: Bakery
+Price: ₹50.00
+Stock: 30
+Description:
+Freshly baked French baguette. Long, thin loaf with a crisp crust.
+
+---
+
+Topic: Product - Blueberry Muffins
+ProductID: 34
+Category: Bakery
+Price: ₹140.00
+Stock: 15
+Description:
+Pack of 4 fresh blueberry muffins. Soft, moist, and filled with real berries.
+
+---
+
+Topic: Product - Soy Milk
+ProductID: 35
+Category: Beverages
+Price: ₹150.00
+Stock: 20
+Description:
+Unsweetened organic soy milk, 1L. A high-protein plant-based milk alternative.
+
+---
+
+Topic: Product - Cottage Cheese
+ProductID: 36
+Category: Dairy
+Price: ₹80.00
+Stock: 30
+Description:
+Low-fat cottage cheese, 200g tub. Fresh cheese curds, high in protein.
+
+---
+
+Topic: Product - Chicken Breast
+ProductID: 37
+Category: Meat
+Price: ₹250.00
+Stock: 30
+Description:
+Skinless, boneless chicken breast, 500g. Lean meat, versatile for cooking.
+
+---
+
+Topic: Product - Ground Beef
+ProductID: 38
+Category: Meat
+Price: ₹300.00
+Stock: 25
+Description:
+Lean ground beef, 90/10 ratio, 500g pack. Perfect for burgers or bolognese.
+
+---
+
+Topic: Product - Salmon Fillet
+ProductID: 39
+Category: Fish
+Price: ₹450.00
+Stock: 15
+Description:
+Fresh Atlantic salmon fillet, 250g. Rich in Omega-3 fatty acids.
+
+---
+
+Topic: Product - Pork Chops
+ProductID: 40
+Category: Meat
+Price: ₹280.00
+Stock: 20
+Description:
+Bone-in pork chops, pack of 2. Tender and flavorful cuts of meat.
+
+---
+
+Topic: Product - Shrimp
+ProductID: 41
+Category: Fish
+Price: ₹380.00
+Stock: 18
+Description:
+Peeled and deveined shrimp, 300g. Ready to cook seafood.
+
+---
+
+Topic: Product - Bacon
+ProductID: 42
+Category: Meat
+Price: ₹220.00
+Stock: 30
+Description:
+Smoked streaky bacon, 200g pack. Crispy and savory breakfast staple.
+
+---
+
+Topic: Product - Tuna Steaks
+ProductID: 43
+Category: Fish
+Price: ₹420.00
+Stock: 10
+Description:
+Fresh tuna steaks, 2-pack. Firm texture, ideal for grilling.
+
+---
+
+Topic: Product - Pork Sausages
+ProductID: 44
+Category: Meat
+Price: ₹190.00
+Stock: 25
+Description:
+Classic pork sausages, 500g pack. Juicy and seasoned with herbs.
+
+---
+
+Topic: Product - Cod Fillets
+ProductID: 45
+Category: Fish
+Price: ₹350.00
+Stock: 30
+Description:
+Frozen cod fillets, 4-pack. White, flaky fish suitable for baking or frying.
+
+---
+
+Topic: Product - Quinoa
+ProductID: 46
+Category: Groceries
+Price: ₹350.00
+Stock: 60
+Description:
+Organic white quinoa, 1kg pack. A gluten-free grain alternative high in protein.
+
+---
+
+Topic: Product - Canned Tomatoes
+ProductID: 48
+Category: Groceries
+Price: ₹65.00
+Stock: 120
+Description:
+Diced tomatoes in juice, 400g can. Pantry staple for sauces and stews.
+
+---
+
+Topic: Product - Lentils
+ProductID: 49
+Category: Groceries
+Price: ₹85.00
+Stock: 90
+Description:
+Dried green lentils, 500g bag. Nutritious legumes perfect for soups.
+
+---
+
+Topic: Product - Spaghetti Pasta
+ProductID: 50
+Category: Groceries
+Price: ₹90.00
+Stock: 100
+Description:
+Classic Spaghetti pasta, 500g pack. Made from durum wheat semolina.
+
+---
+
+Topic: Product - Honey
+ProductID: 52
+Category: Groceries
+Price: ₹200.00
+Stock: 45
+Description:
+Raw wildflower honey, 250g jar. Natural sweetener with floral notes.
+
+---
+
+Topic: Product - All-Purpose Flour
+ProductID: 53
+Category: Groceries
+Price: ₹70.00
+Stock: 80
+Description:
+Bleached all-purpose flour, 1kg bag. Essential ingredient for baking.
+
+---
+
+Topic: Product - White Sugar
+ProductID: 54
+Category: Groceries
+Price: ₹60.00
+Stock: 110
+Description:
+Granulated white sugar, 1kg bag. Sweetener for beverages and baking.
+
+---
+
+Topic: Product - Canned Tuna
+ProductID: 55
+Category: Groceries
+Price: ₹110.00
+Stock: 75
+Description:
+Tuna chunks in brine, 185g can. Ready-to-eat protein source.
+
+---
+
+Topic: Product - Black Beans
+ProductID: 56
+Category: Groceries
+Price: ₹75.00
+Stock: 90
+Description:
+Canned black beans, 400g. Cooked and ready to add to tacos or salads.
+
+---
+
+Topic: Product - Basmati Rice
+ProductID: 57
+Category: Groceries
+Price: ₹180.00
+Stock: 65
+Description:
+Premium basmati rice, 1kg bag. Aromatic long-grain rice.
+
+---
+
+Topic: Product - Rolled Oats
+ProductID: 58
+Category: Groceries
+Price: ₹100.00
+Stock: 55
+Description:
+Rolled oats, 750g pouch. Wholegrain oats ideal for breakfast porridge.
+
+---
+
+Topic: Product - Tomato Ketchup
+ProductID: 59
+Category: Groceries
+Price: ₹130.00
+Stock: 70
+Description:
+Classic tomato ketchup, 500g bottle. The perfect condiment for fries and burgers.
+
+---
+
+Topic: Product - Mayonnaise
+ProductID: 60
+Category: Groceries
+Price: ₹160.00
+Stock: 40
+Description:
+Real mayonnaise, 450g jar. Creamy and rich condiment.
+
+---
+
+Topic: Product - Dijon Mustard
+ProductID: 61
+Category: Groceries
+Price: ₹140.00
+Stock: 30
+Description:
+Dijon mustard, 200g jar. Sharp and tangy French-style mustard.
+
+---
+
+Topic: Product - Soy Sauce
+ProductID: 62
+Category: Groceries
+Price: ₹95.00
+Stock: 50
+Description:
+Light soy sauce, 150ml bottle. Essential for Asian cooking and seasoning.
+
+---
+
+Topic: Product - Balsamic Vinegar
+ProductID: 63
+Category: Groceries
+Price: ₹250.00
+Stock: 25
+Description:
+Balsamic vinegar of Modena, 250ml. Dark, concentrated vinegar for dressings.
+
+---
+
+Topic: Product - Coconut Milk
+ProductID: 64
+Category: Groceries
+Price: ₹120.00
+Stock: 60
+Description:
+Canned coconut milk, 400ml. Rich and creamy, used in curries and desserts.
+
+---
+
+Topic: Product - Chicken Broth
+ProductID: 65
+Category: Groceries
+Price: ₹150.00
+Stock: 40
+Description:
+Low sodium chicken broth, 1L carton. Flavorful base for soups and risottos.
+
+---
+
+Topic: Product - Green Tea
+ProductID: 67
+Category: Beverages
+Price: ₹110.00
+Stock: 70
+Description:
+Box of 25 green tea bags. Light, refreshing, and rich in antioxidants.
+
+---
+
+Topic: Product - Sparkling Water
+ProductID: 68
+Category: Beverages
+Price: ₹80.00
+Stock: 50
+Description:
+Lemon flavored sparkling water, 1L. Bubbly and refreshing with zero calories.
+
+---
+
+Topic: Product - Coffee Beans
+ProductID: 69
+Category: Beverages
+Price: ₹300.00
+Stock: 35
+Description:
+Dark roast coffee beans, 250g bag. Whole beans for a bold, intense brew.
+
+---
+
+Topic: Product - Apple Juice
+ProductID: 70
+Category: Beverages
+Price: ₹160.00
+Stock: 40
+Description:
+100% pure apple juice, 1.5L bottle. Sweet and refreshing fruit juice.
+
+---
+
+Topic: Product - Cola
+ProductID: 71
+Category: Beverages
+Price: ₹90.00
+Stock: 80
+Description:
+Classic cola, 2L bottle. Carbonated soft drink with caramel flavor.
+
+---
+
+Topic: Product - Ginger Ale
+ProductID: 72
+Category: Beverages
+Price: ₹75.00
+Stock: 45
+Description:
+Ginger ale, 1L bottle. Carbonated drink with a spicy ginger kick.
+
+---
+
+Topic: Product - Oat Milk
+ProductID: 73
+Category: Beverages
+Price: ₹220.00
+Stock: 25
+Description:
+Barista blend oat milk, 1L. Creamy texture, foams well for coffee.
+
+---
+
+Topic: Product - Red Wine
+ProductID: 74
+Category: Beverages
+Price: ₹850.00
+Stock: 20
+Description:
+Cabernet Sauvignon, 750ml bottle. Full-bodied red wine with berry notes.
+
+---
+
+Topic: Product - Lager Beer
+ProductID: 75
+Category: Beverages
+Price: ₹360.00
+Stock: 30
+Description:
+6-pack of craft lager. Crisp, refreshing beer.
+
+---
+
+Topic: Product - Potato Chips
+ProductID: 76
+Category: Snacks
+Price: ₹70.00
+Stock: 150
+Description:
+Sea salt kettle-cooked potato chips, 150g bag. Crunchy and salty snack.
+
+---
+
+Topic: Product - Dark Chocolate 85%
+ProductID: 77
+Category: Snacks
+Price: ₹190.00
+Stock: 60
+Description:
+85% Cacao dark chocolate bar, 100g. Intense cocoa flavor with very little sugar.
+
+---
+
+Topic: Product - Almonds
+ProductID: 78
+Category: Snacks
+Price: ₹280.00
+Stock: 45
+Description:
+Roasted and salted almonds, 250g pack. Healthy snack rich in Vitamin E.
+
+---
+
+Topic: Product - Pretzels
+ProductID: 79
+Category: Snacks
+Price: ₹85.00
+Stock: 70
+Description:
+Salted pretzels, 300g bag. Twisted baked dough with coarse salt.
+
+---
+
+Topic: Product - Popcorn
+ProductID: 80
+Category: Snacks
+Price: ₹120.00
+Stock: 50
+Description:
+Microwave butter popcorn, 3-pack box. Movie theater style popcorn at home.
+
+---
+
+Topic: Product - Granola Bars
+ProductID: 81
+Category: Snacks
+Price: ₹180.00
+Stock: 40
+Description:
+Oats and honey granola bars, box of 6. Chewy and sweet energy snack.
+
+---
+
+Topic: Product - Rice Crackers
+ProductID: 82
+Category: Snacks
+Price: ₹95.00
+Stock: 55
+Description:
+Sea salt brown rice crackers. Gluten-free, crispy and light.
+
+---
+
+Topic: Product - Dried Mango
+ProductID: 83
+Category: Snacks
+Price: ₹210.00
+Stock: 25
+Description:
+Organic dried mango slices, 100g. Chewy, sweet, and tropical.
+
+---
+
+Topic: Product - Cashews
+ProductID: 84
+Category: Snacks
+Price: ₹310.00
+Stock: 35
+Description:
+Unsalted roasted cashews, 200g. Creamy nuts perfect for snacking.
+
+---
+
+Topic: Product - Chocolate Cookies
+ProductID: 85
+Category: Snacks
+Price: ₹130.00
+Stock: 60
+Description:
+Chocolate chip cookies, 250g pack. Classic crumbly cookies with chocolate chunks.
+
+---
+
+Topic: Product - Tortilla Chips
+ProductID: 86
+Category: Snacks
+Price: ₹110.00
+Stock: 80
+Description:
+Nacho cheese tortilla chips, 300g bag. Corn chips with cheesy seasoning.
+
+---
+
+Topic: Product - Salsa
+ProductID: 87
+Category: Snacks
+Price: ₹140.00
+Stock: 40
+Description:
+Medium chunky salsa, 450g jar. Tomato, onion, and chili dip.
+
+---
+
+Topic: Product - Gummy Bears
+ProductID: 88
+Category: Snacks
+Price: ₹60.00
+Stock: 90
+Description:
+Assorted fruit gummy bears, 150g bag. Chewy, sweet candies.
+
+---
+
+Topic: Product - Toilet Paper
+ProductID: 89
+Category: Household
+Price: ₹350.00
+Stock: 80
+Description:
+Soft 2-ply toilet paper, pack of 12 rolls. Strong and absorbent.
+
+---
+
+Topic: Product - Dish Soap
+ProductID: 90
+Category: Household
+Price: ₹120.00
+Stock: 55
+Description:
+Lemon scent dish soap, 750ml bottle. Cuts through grease effectively.
+
+---
+
+Topic: Product - Hand Soap
+ProductID: 91
+Category: Personal Care
+Price: ₹150.00
+Stock: 40
+Description:
+Lavender foaming hand soap, 250ml pump. Gentle on hands.
+
+---
+
+Topic: Product - Shampoo
+ProductID: 92
+Category: Personal Care
+Price: ₹230.00
+Stock: 30
+Description:
+Herbal essence shampoo, 400ml bottle. Cleanses and revitalizes hair.
+
+---
+
+Topic: Product - Toothpaste
+ProductID: 93
+Category: Personal Care
+Price: ₹85.00
+Stock: 60
+Description:
+Mint fluoride toothpaste, 100g tube. Fights cavities and freshens breath.
+
+---
+
+Topic: Product - Paper Towels
+ProductID: 94
+Category: Household
+Price: ₹280.00
+Stock: 70
+Description:
+2-ply kitchen paper towels, pack of 6 rolls. Highly absorbent for spills.
+
+---
+
+Topic: Product - Trash Bags
+ProductID: 95
+Category: Household
+Price: ₹310.00
+Stock: 50
+Description:
+30-gallon drawstring trash bags, 50 count. Strong liners for kitchen bins.
+
+---
+
+Topic: Product - Conditioner
+ProductID: 96
+Category: Personal Care
+Price: ₹230.00
+Stock: 30
+Description:
+Herbal essence conditioner, 400ml. Detangles and softens hair.
+
+---
+
+Topic: Product - Bar Soap
+ProductID: 97
+Category: Personal Care
+Price: ₹130.00
+Stock: 45
+Description:
+Pack of 3 moisturizing bar soaps. Cleans without drying skin.
+
+---
+
+Topic: Product - Laundry Detergent
+ProductID: 98
+Category: Household
+Price: ₹400.00
+Stock: 25
+Description:
+Liquid laundry detergent, 1.5L bottle. Removes stains and freshens clothes.
+
+---
+
+Topic: Product - All-Purpose Cleaner
+ProductID: 99
+Category: Household
+Price: ₹160.00
+Stock: 35
+Description:
+Multi-surface cleaner, 750ml spray bottle. Disinfects and cleans hard surfaces.
+
+---
+
+Topic: Product - Sponges
+ProductID: 100
+Category: Household
+Price: ₹90.00
+Stock: 60
+Description:
+Kitchen cleaning sponges, 6-pack. Dual-sided for scrubbing and wiping.
+
+---
+
+Topic: Product - Toothbrush
+ProductID: 101
+Category: Personal Care
+Price: ₹110.00
+Stock: 50
+Description:
+Medium bristle toothbrush, 2-pack. Ergonomic handle for easy brushing.
+
+---
+
+Topic: Product - Deodorant
+ProductID: 102
+Category: Personal Care
+Price: ₹170.00
+Stock: 40
+Description:
+Roll-on antiperspirant deodorant, 50ml. Provides 24-hour protection.
+
+---
+
+Topic: Product - Test-Soda
+ProductID: 196
+Category: Test
+Price: ₹29.00
+Stock: 3
+Description:
+A product for testing triggers and system responses.
+
+---
+
+Topic: Product - MacBook Air 13
+ProductID: 197
+Category: Electronics
+Price: ₹99999.00
+Stock: 147
+Description:
+Built for Apple Intelligence, 13.6-inch Liquid Retina Display, 16GB Unified Memory, 256GB SSD Storage, 12MP Center Stage Camera, Touch ID; Sky Blue.
+
+---

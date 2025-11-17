@@ -1,1 +1,60 @@
 @import "tailwindcss";
+
+/* Global theme variables and base dark styles */
+:root {
+  --bg-primary: #121212;
+  --bg-surface: #1c1c1c;
+  --bg-elevated: #2e2e2e;
+  --text-primary: #f5f5f5;
+  --text-secondary: #cfcfcf;
+  --accent: #ff8c00;
+  --accent-2: #ff4b91;
+  --border-muted: rgba(255, 140, 0, 0.3);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Optional animated gradient helper used in hero text */
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+.animate-gradient-x {
+  background-size: 200% 200%;
+  animation: gradient-x 6s ease infinite;
+}
+
+/* Custom Scrollbar Styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1e1e1e;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #FF8C00;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #ffa733;
+}
+
+/* Firefox scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #FF8C00 #1e1e1e;
+}

@@ -13,7 +13,7 @@ export const AuthContextProvider = ({ children }) => {
     const [products, setProducts] = useState([])
     const [cart, setCart] = useState([])
     const [orders, setOrders] = useState([])
-    const [role, setRole] = useState("owner");
+    const [role, setRole] = useState(localStorage.getItem("role") ? localStorage.getItem("role") : "owner");
     const [allOrders, setAllOrders] = useState([])
     // Fetch cart items
     const fetchCartItems = async () => {
@@ -126,18 +126,12 @@ export const AuthContextProvider = ({ children }) => {
         try {
             const { data } = await axios.get(backendUrl + '/api/product/products', { headers: { token } })
             if (data.success) {
-                setProducts(data.products || [])
+                setProducts(data.products)
             } else {
-                // Even if success is false, set empty array to avoid showing stale data
-                setProducts([])
-                if (data.message && data.message !== "No products found") {
-                    toast.error(data.message)
-                }
+                toast.error(data.message)
             }
         } catch (error) {
-            console.error("Error fetching products:", error)
-            setProducts([])
-            toast.error(error.response?.data?.message || error.message || "Failed to fetch products")
+            toast.error(error.message)
         }
     }
     const fetchOrders = async () => {

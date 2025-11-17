@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic RAG + SQL Demo (Ollama)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .chat-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .user-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        .agent-bubble {
+            background-color: #f3f4f6;
+            color: #1f2937;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border-left: 3px solid #667eea;
+        }
+        .agent-thought {
+            background-color: #fef3c7;
+            color: #92400e;
+            align-self: center;
+            width: 90%;
+            font-size: 0.875rem;
+            padding: 8px 12px;
+            border-left: 4px solid #fbbf24;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        pre {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        code:not(pre > code) {
+            background-color: #f3f4f6;
+            color: #db2777;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-online {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .status-offline {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900">
+
+    <div class="max-w-3xl mx-auto p-4 sm:p-6 md:p-8 min-h-screen flex flex-col">
+        <header class="mb-6 text-center">
+            <div class="flex items-center justify-center gap-3 mb-2">
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                    Agentic RAG System
+                </h1>
+                <span id="status-badge" class="status-badge status-offline">Checking...</span>
+            </div>
+            <p class="text-gray-600 mt-2">
+                Powered by <strong>Llama 3.1</strong> via Ollama • Twin Routing Architecture
+            </p>
+            <p class="text-sm text-gray-500 mt-1">
+                Ask about concepts (Vector DB) or query user data (SQL DB)
+            </p>
+        </header>
+
+        <div id="chat-history" class="flex-grow flex flex-col space-y-3 mb-6 p-4 bg-white rounded-xl shadow-lg overflow-y-auto h-96 border border-gray-200">
+            <div class="chat-bubble agent-bubble">
+                👋 Hello! I'm your agentic AI assistant. I can:
+                <br>• Answer questions about RAG, AI, and concepts (using vector search)
+                <br>• Query user data from the database (using SQL)
+                <br>• Chat naturally with you
+                <br><br>What would you like to know?
+            </div>
+        </div>
+
+        <form id="chat-form" class="flex items-center space-x-3">
+            <input 
+                id="query-input"
+                type="text"
+                placeholder="Ask me anything..."
+                class="flex-grow p-3 border-2 border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                autocomplete="off"
+            >
+            <button 
+                id="send-button"
+                type="submit"
+                class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <span id="button-text">Send</span>
+                <div id="loading-spinner" class="spinner hidden ml-2"></div>
+            </button>
+        </form>
+
+        <div class="mt-4 text-center">
+            <p class="text-xs text-gray-500 mb-2">Try these examples:</p>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button class="example-btn text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-200 transition">
+                    What is agentic RAG?
+                </button>
+                <button class="example-btn text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full hover:bg-indigo-200 transition">
+                    How many users in engineering?
+                </button>
+                <button class="example-btn text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-200 transition">
+                    Explain CRAG
+                </button>
+                <button class="example-btn text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full hover:bg-indigo-200 transition">
+                    List all users
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const API_URL = "http://localhost:8000";
+
+        // ============================================
+        // DOM ELEMENTS
+        // ============================================
+        const chatHistory = document.getElementById("chat-history");
+        const chatForm = document.getElementById("chat-form");
+        const queryInput = document.getElementById("query-input");
+        const sendButton = document.getElementById("send-button");
+        const buttonText = document.getElementById("button-text");
+        const loadingSpinner = document.getElementById("loading-spinner");
+        const statusBadge = document.getElementById("status-badge");
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        async function checkServerHealth() {
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                if (data.status === "healthy") {
+                    statusBadge.textContent = "🟢 Online";
+                    statusBadge.className = "status-badge status-online";
+                } else {
+                    throw new Error(data.error || "Unhealthy");
+                }
+            } catch (error) {
+                statusBadge.textContent = "🔴 Offline";
+                statusBadge.className = "status-badge status-offline";
+                addMessageToChat(`⚠ Backend server is offline or error: ${error.message}. Start it with: python backend.py`, "agent");
+            }
+        }
+        checkServerHealth();
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        chatForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const query = queryInput.value.trim();
+            if (!query || sendButton.disabled) return;
+            await handleQuery(query);
+        });
+
+        document.querySelectorAll(".example-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                queryInput.value = btn.textContent.trim();
+                chatForm.dispatchEvent(new Event("submit"));
+            });
+        });
+
+        // ============================================
+        // MAIN LOGIC
+        // ============================================
+        async function handleQuery(query) {
+            addMessageToChat(query, "user");
+            queryInput.value = "";
+            setLoading(true);
+            try {
+                const response = await fetch(`${API_URL}/chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query: query })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (Array.isArray(data.messages)) {
+                    data.messages.forEach(msg => {
+                        if (msg.type === "thought") addAgentThought(msg.content);
+                    });
+                }
+                addMessageToChat(data.final_answer, "agent");
+            } catch (error) {
+                console.error("Error:", error);
+                addMessageToChat(`❌ Error: ${error.message}. Make sure the backend server is running.`, "agent");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // ============================================
+        // UI HELPER FUNCTIONS
+        // ============================================
+        function addMessageToChat(text, sender) {
+            const bubble = document.createElement("div");
+            bubble.classList.add("chat-bubble");
+            bubble.classList.add(sender === "user" ? "user-bubble" : "agent-bubble");
+            let safeText = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            safeText = safeText
+                .replace(/``````/g, '<pre><code>$2</code></pre>')
+                .replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*([\s\S]+?)\*/g, '<em>$1</em>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\n/g, '<br>');
+            bubble.innerHTML = safeText;
+            chatHistory.appendChild(bubble);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function addAgentThought(text) {
+            const thoughtBubble = document.createElement("div");
+            thoughtBubble.classList.add("chat-bubble", "agent-thought");
+            thoughtBubble.textContent = text;
+            chatHistory.appendChild(thoughtBubble);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function setLoading(isLoading) {
+            sendButton.disabled = isLoading;
+            queryInput.disabled = isLoading;
+            if (isLoading) {
+                buttonText.textContent = "Thinking";
+                loadingSpinner.classList.remove("hidden");
+            } else {
+                buttonText.textContent = "Send";
+                loadingSpinner.classList.add("hidden");
+                queryInput.disabled = false;
+                queryInput.focus();
+            }
+        }
+    </script>
+</body>
+</html>
