@@ -70,7 +70,60 @@ export const sendOTPEmail = async (email, otp) => {
     return { success: false, message: error.message };
   }
 };
+export const sendLoginOTPEmail = async (email, otp) => {
+  try {
+   // Check if email credentials are configured
+    if (!process.env.COMPANY_EMAIL || !process.env.COMPANY_EMAIL_APP_PASSWORD) { 
+      return { success: false, message: "Email service not configured" };
+    } 
 
+    const transporter = createTransporter();
+
+    const mailOptions = {
+      from: `"Shop4Ever" <${process.env.COMPANY_EMAIL}>`,
+      to: email,
+      subject: "Your Login OTP - Shop4Ever", // CHANGED
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #FF8C00 0%, #8A2BE2 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Shop4Ever</h1>
+          </div>
+          <div style="padding: 30px; background: #f5f5f5;">
+            <h2 style="color: #333;">Login Verification</h2> 
+            <p style="color: #666; font-size: 16px;">
+               You are attempting to log in. Use the following OTP to verify your identity:
+            </p>
+            <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+              <h1 style="color: #FF8C00; font-size: 36px; letter-spacing: 8px; margin: 0;">${otp}</h1>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+               This OTP will expire in 10 minutes. If you didn't initiate this login, please ignore this email.
+            </p>
+            <p style="color: #999; font-size: 12px; margin-top: 30px;">
+              This is an automated message, please do not reply.
+            </p>
+          </div>
+        </div>
+      `,
+      text: `
+        Login Verification - Shop4Ever 
+        
+        OTP: ${otp}
+        
+        Valid for 10 minutes.
+      `, // CHANGED
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log("✅ Email sent successfully:", info.messageId);
+    return { success: true, messageId: info.messageId };
+
+  } catch (error) {
+    console.error("❌ Error sending email:", error);
+    return { success: false, message: error.message };
+  }
+};
 // Send Order Confirmation Email
 export const sendOrderConfirmationEmail = async (email, orderData) => {
   try {

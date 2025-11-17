@@ -21,6 +21,14 @@ const LoginPage = () => {
   const [forgotPasswordStep, setForgotPasswordStep] = useState("email"); // "email", "otp", "reset"
   const [otpTimer, setOtpTimer] = useState(60); // 60 seconds
   const [canResend, setCanResend] = useState(false);
+  
+  // New states for login/signup OTP flow
+  const [authStep, setAuthStep] = useState("form"); // "form" or "otp"
+  const [authOtp, setAuthOtp] = useState("");
+  const [authOtpTimer, setAuthOtpTimer] = useState(60);
+  const [canResendAuthOtp, setCanResendAuthOtp] = useState(false);
+  const authTimerRef = useRef(null);
+  
   const timerRef = useRef(null);
   const navigate = useNavigate();
   const { token, setToken, backendUrl, role, setRole } = useContext(AuthContext);
@@ -29,7 +37,8 @@ const LoginPage = () => {
     e.preventDefault();
     try {
       if (mode === "signup") {
-        const { data } = await axios.post(`${backendUrl}/api/auth/signup`, {
+        // Send signup OTP
+        const { data } = await axios.post(`${backendUrl}/api/auth/send-signup-otp`, {
           first_name: firstName,
           last_name: lastName,
           email,
@@ -37,37 +46,126 @@ const LoginPage = () => {
           phone,
         });
         if (data.success) {
-          setToken(data.token);
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("role", "consumer");
-          navigate("/consumer");
+          toast.success(data.message || "OTP sent to your email");
+          setAuthStep("otp");
+          setAuthOtpTimer(60);
+          setCanResendAuthOtp(false);
+          if (data.otp) {
+            // Development mode - show OTP in console
+            console.log("OTP (Development):", data.otp);
+          }
         } else {
           toast.error(data.message);
         }
       } else {
-        const { data } = await axios.post(`${backendUrl}/api/auth/login`, {
+        // Send login OTP
+        const { data } = await axios.post(`${backendUrl}/api/auth/send-login-otp`, {
           email,
           password,
           role,
         });
         if (data.success) {
-          setToken(data.token);
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("role", role);
+          toast.success(data.message || "OTP sent to your email");
+          setAuthStep("otp");
+          setAuthOtpTimer(60);
+          setCanResendAuthOtp(false);
           setWrongPasswordAttempted(false);
-          navigate(`/${role}`);
+          if (data.otp) {
+            // Development mode - show OTP in console
+            console.log("OTP (Development):", data.otp);
+          }
         } else {
           toast.error(data.message);
           setWrongPasswordAttempted(true);
         }
       }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.response?.data?.message || error.message);
       setWrongPasswordAttempted(true);
     }
   };
 
-  // Timer effect for OTP countdown
+  const handleVerifyAuthOtp = async () => {
+    try {
+      if (mode === "signup") {
+        const { data } = await axios.post(`${backendUrl}/api/auth/verify-signup-otp`, {
+          email,
+          otp: authOtp,
+        });
+        if (data.success) {
+          setToken(data.token);
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("role", "consumer");
+          toast.success("Account created successfully!");
+          navigate("/consumer");
+        } else {
+          toast.error(data.message);
+        }
+      } else {
+        const { data } = await axios.post(`${backendUrl}/api/auth/verify-login-otp`, {
+          email,
+          otp: authOtp,
+        });
+        if (data.success) {
+          setToken(data.token);
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("role", role);
+          toast.success("Login successful!");
+          navigate(`/${role}`);
+        } else {
+          toast.error(data.message);
+        }
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
+    }
+  };
+
+  const handleResendAuthOtp = async () => {
+    if (!canResendAuthOtp) return;
+    
+    try {
+      if (mode === "signup") {
+        const { data } = await axios.post(`${backendUrl}/api/auth/send-signup-otp`, {
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          password,
+          phone,
+        });
+        if (data.success) {
+          toast.success("OTP resent to your email");
+          setAuthOtpTimer(60);
+          setCanResendAuthOtp(false);
+          if (data.otp) {
+            console.log("OTP (Development):", data.otp);
+          }
+        } else {
+          toast.error(data.message);
+        }
+      } else {
+        const { data } = await axios.post(`${backendUrl}/api/auth/send-login-otp`, {
+          email,
+          password,
+          role,
+        });
+        if (data.success) {
+          toast.success("OTP resent to your email");
+          setAuthOtpTimer(60);
+          setCanResendAuthOtp(false);
+          if (data.otp) {
+            console.log("OTP (Development):", data.otp);
+          }
+        } else {
+          toast.error(data.message);
+        }
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
+    }
+  };
+
+  // Timer effect for forgot password OTP countdown
   useEffect(() => {
     if (forgotPasswordStep === "otp" && otpTimer > 0) {
       timerRef.current = setInterval(() => {
@@ -92,6 +190,32 @@ const LoginPage = () => {
       }
     };
   }, [forgotPasswordStep, otpTimer]);
+
+  // Timer effect for login/signup OTP countdown
+  useEffect(() => {
+    if (authStep === "otp" && authOtpTimer > 0) {
+      authTimerRef.current = setInterval(() => {
+        setAuthOtpTimer((prev) => {
+          if (prev <= 1) {
+            setCanResendAuthOtp(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (authTimerRef.current) {
+        clearInterval(authTimerRef.current);
+        authTimerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (authTimerRef.current) {
+        clearInterval(authTimerRef.current);
+      }
+    };
+  }, [authStep, authOtpTimer]);
 
   const handleForgotPasswordEmail = async () => {
     try {
@@ -221,6 +345,8 @@ const LoginPage = () => {
                 onClick={() => {
                   setRole(r);
                   setMode(r === "consumer" ? mode : "login");
+                  setAuthStep("form");
+                  setAuthOtp("");
                 }}
                 className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                   role === r
@@ -233,83 +359,147 @@ const LoginPage = () => {
             ))}
           </div>
 
-          {/* Form */}
-          <form className="space-y-3" onSubmit={handleSubmit}>
-            {role === "consumer" && mode === "signup" && (
-              <>
-                <input
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  type="text"
-                  placeholder="First Name"
-                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                  required
-                />
-                <input
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  type="text"
-                  placeholder="Last Name"
-                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                  required
-                />
-                <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  type="tel"
-                  placeholder="Phone Number"
-                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                  required
-                />
-              </>
-            )}
+          {/* OTP Step */}
+          {authStep === "otp" ? (
+            <div className="space-y-4">
+              <p className="text-gray-300 text-center mb-4">
+                Enter the OTP sent to <span className="font-semibold text-[#FF8C00]">{email}</span>
+              </p>
+              <input
+                value={authOtp}
+                onChange={(e) => setAuthOtp(e.target.value)}
+                type="text"
+                placeholder="Enter OTP"
+                maxLength={6}
+                className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40 text-center text-2xl tracking-widest"
+                required
+              />
+              
+              {/* Timer and Resend */}
+              <div className="flex items-center justify-between">
+                {!canResendAuthOtp ? (
+                  <p className="text-sm text-gray-400">
+                    Resend OTP in{" "}
+                    <span className="text-[#FF8C00] font-semibold">
+                      {Math.floor(authOtpTimer / 60)}:{(authOtpTimer % 60).toString().padStart(2, "0")}
+                    </span>
+                  </p>
+                ) : (
+                  <button
+                    onClick={handleResendAuthOtp}
+                    className="text-sm text-[#FF8C00] hover:underline font-medium"
+                  >
+                    Resend OTP
+                  </button>
+                )}
+              </div>
 
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              placeholder="Email"
-              className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-              required
-            />
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type="password"
-              placeholder="Password"
-              className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-              required
-            />
-
-            {wrongPasswordAttempted && mode === "login" && (
+              <button
+                onClick={handleVerifyAuthOtp}
+                className="w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
+              >
+                Verify OTP
+              </button>
+              
               <button
                 type="button"
-                onClick={() => setForgotPasswordModal(true)}
-                className="text-sm text-[#FF8C00] hover:underline text-right w-full"
+                onClick={() => {
+                  setAuthStep("form");
+                  setAuthOtp("");
+                  setAuthOtpTimer(60);
+                  setCanResendAuthOtp(false);
+                  if (authTimerRef.current) {
+                    clearInterval(authTimerRef.current);
+                  }
+                }}
+                className="w-full px-4 py-3 rounded-lg bg-[#2E2E2E] hover:bg-[#3a3a3a] text-gray-200 border border-[#FF8C00]/40 transition"
               >
-                Forgot Password?
+                Change Email
               </button>
-            )}
+            </div>
+          ) : (
+            /* Form Step */
+            <form className="space-y-3" onSubmit={handleSubmit}>
+              {role === "consumer" && mode === "signup" && (
+                <>
+                  <input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    type="text"
+                    placeholder="First Name"
+                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                    required
+                  />
+                  <input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    type="text"
+                    placeholder="Last Name"
+                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                    required
+                  />
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    type="tel"
+                    placeholder="Phone Number"
+                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                    required
+                  />
+                </>
+              )}
 
-            <button
-              type="submit"
-              className="w-full px-4 py-3 mt-2 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
-            >
-              {mode === "signup"
-                ? "Sign Up as Consumer"
-                : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
-            </button>
-          </form>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                placeholder="Email"
+                className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                required
+              />
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                placeholder="Password"
+                className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                required
+              />
+
+              {wrongPasswordAttempted && mode === "login" && (
+                <button
+                  type="button"
+                  onClick={() => setForgotPasswordModal(true)}
+                  className="text-sm text-[#FF8C00] hover:underline text-right w-full"
+                >
+                  Forgot Password?
+                </button>
+              )}
+
+              <button
+                type="submit"
+                className="w-full px-4 py-3 mt-2 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
+              >
+                {mode === "signup"
+                  ? "Sign Up as Consumer"
+                  : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
+              </button>
+            </form>
+          )}
 
           {/* Toggle Mode */}
-          {role === "consumer" && (
+          {role === "consumer" && authStep === "form" && (
             <p className="text-center mt-4 text-sm text-gray-300">
               {mode === "login" ? (
                 <>
-                  Don’t have an account?{" "}
+                  Don't have an account?{" "}
                   <button
                     type="button"
-                    onClick={() => setMode("signup")}
+                    onClick={() => {
+                      setMode("signup");
+                      setAuthStep("form");
+                      setAuthOtp("");
+                    }}
                     className="text-[#FF8C00] font-medium hover:underline"
                   >
                     Sign Up
@@ -320,7 +510,11 @@ const LoginPage = () => {
                   Already have an account?{" "}
                   <button
                     type="button"
-                    onClick={() => setMode("login")}
+                    onClick={() => {
+                      setMode("login");
+                      setAuthStep("form");
+                      setAuthOtp("");
+                    }}
                     className="text-[#FF8C00] font-medium hover:underline"
                   >
                     Login
