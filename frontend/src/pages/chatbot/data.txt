@@ -1,0 +1,219 @@
+---
+Topic: Agentic RAG
+Question: What is agentic RAG?
+Answer: Agentic RAG, or Retrieval-Augmented Generation with Agents, is an advanced system that uses autonomous AI 'agents' to handle complex queries. Unlike standard RAG which just retrieves and answers, an agentic system can plan, reason, and use multiple tools. For example, a query router agent might first decide *if* it needs to search a vector database, query a SQL database, or just chat. Other agents can then execute those tasks, validate information, or even ask clarifying questions.
+
+---
+Topic: CRAG
+Question: Explain CRAG
+Answer: CRAG stands for Corrective Retrieval-Augmented Generation. It's an enhanced RAG model designed to improve the accuracy of retrieved information. A key feature of CRAG is its 'retrieval evaluator.' This component assesses the relevance of documents retrieved for a query. If the documents are found to be irrelevant or low-quality, CRAG will automatically trigger a new, often rephrased, search to find better information. This corrective loop helps prevent hallucinations and ensures the final answer is based on the most accurate context.
+
+---
+Topic: User Database Information
+Question: How many users in engineering?
+Answer: According to the employee records, there are 3 users in the Engineering department: Alice Johnson, Charlie Brown, and Frank Wilson.
+
+Question: List all users
+Answer: The complete list of registered users is as follows:
+- ID 1: Alice Johnson (Engineering)
+- ID 2: Bob Smith (Marketing)
+- ID 3: Charlie Brown (Engineering)
+- ID 4: David Lee (Sales)
+- ID 5: Eve Martinez (Marketing)
+- ID 6: Frank Wilson (Engineering)
+
+---
+Topic: Shopping Mart Database Schema
+Schema: Our supermarket database consists of three main tables:
+1.  **Products**: Contains product information.
+    * Columns: product_id (INTEGER, Primary Key), product_name (TEXT), category (TEXT), price (REAL), stock_quantity (INTEGER)
+2.  **Customers**: Stores customer details.
+    * Columns: customer_id (INTEGER, Primary Key), first_name (TEXT), last_name (TEXT), email (TEXT), join_date (TEXT)
+3.  **Orders**: Links products and customers.
+    * Columns: order_id (INTEGER, Primary Key), customer_id (INTEGER, Foreign Key to Customers), order_date (TEXT), total_amount (REAL)
+
+Common Questions about the Shopping Mart:
+Question: How do I find the total number of products in the 'Dairy' category?
+Answer: You would need to query the 'Products' table. A possible SQL query would be: SELECT COUNT(*) FROM Products WHERE category = 'Dairy';
+Question: How can I check the stock level for 'Organic Milk'?
+Answer: You would query the 'Products' table for the stock_quantity. Example: SELECT stock_quantity FROM Products WHERE product_name = 'Organic Milk';
+
+---
+Topic: Product - FarmFresh Organic Milk
+ProductID: 1001
+Category: Dairy
+Price: 4.50
+Stock: 150
+Description:
+FarmFresh Organic Milk is a premium, full-cream milk sourced from local, certified-organic farms. Our cows are grass-fed and are not treated with any hormones or antibiotics, ensuring you get the purest taste and highest quality. This milk is pasteurized and non-homogenized, leaving a delicious cream layer at the top. It is rich in calcium, Vitamin D, and Omega-3 fatty acids, making it a healthy choice for the whole family.
+
+---
+Topic: Product - Artisan Sourdough Bread
+ProductID: 2001
+Category: Bakery
+Price: 5.99
+Stock: 50
+Description:
+Experience the rustic taste of our Artisan Sourdough Bread. Baked fresh daily by our in-house bakers, this bread is crafted using a traditional, slow-fermentation process. This not only gives it the characteristic tangy flavor and chewy crust, but also makes it easier to digest. We use only unbleached flour, filtered water, and sea salt. It's the perfect bread for sandwiches, toast, or simply enjoyed with a bit of butter. This product is all-natural, vegan, and contains no preservatives.
+
+---
+Topic: Product - Premium Hass Avocados (3-Pack)
+ProductID: 3001
+Category: Produce
+Price: 4.20
+Stock: 200
+Description:
+Get our best-selling Premium Hass Avocados in a convenient 3-pack. These avocados are sourced from prime orchards and are known for their creamy texture and rich, nutty flavor. They are picked at the perfect time and ripened to be 'Ready-to-Eat' within 1-2 days of purchase. Avocados are a superfood, packed with healthy monounsaturated fats, fiber, and potassium. They are perfect for making guacamole, spreading on toast, or adding to salads.
+
+---
+Topic: Product - Free-Range Chicken Breast
+ProductID: 4001
+Category: Meat & Poultry
+Price: 9.50
+Stock: 85
+Description:
+Our Free-Range Chicken Breasts are a high-quality, lean protein source. These chickens are raised in open pastures with room to roam, foraging on a natural diet. This results in chicken that is more tender and flavorful than conventional options. The pack contains two boneless, skinless breasts, air-chilled to lock in flavor and juices. It's 100% all-natural, with no added water or salt. Ideal for grilling, baking, or pan-searing.
+
+---
+Topic: Product - "The Green" Cold-Pressed Juice
+ProductID: 5001
+Category: Beverages
+Price: 6.75
+Stock: 40
+Description:
+Recharge your body with "The Green," our signature cold-pressed juice. This vibrant green drink is a powerhouse of nutrients, made from 100% organic kale, spinach, cucumber, celery, green apple, and a hint of ginger. The cold-pressing process ensures that all the vital enzymes and vitamins are preserved. It's a fantastic way to get your daily greens, boost your energy, and support your immune system. Contains no added sugar, water, or preservatives.
+
+---
+Topic: Product - Organic Tomatoes on the Vine
+ProductID: 3002
+Category: Produce
+Price: 3.99
+Stock: 120
+Description:
+These Organic Tomatoes on the Vine are bursting with flavor. Grown in nutrient-rich soil without synthetic pesticides, they are left to ripen on the vine for the sweetest, most robust taste. They are exceptionally juicy and have a firm texture, making them perfect for salads, sauces, or roasting. The vine itself helps to maintain freshness and enhances their aroma. A staple for any kitchen.
+
+---
+Topic: Product - Organic Bananas (Bunch)
+ProductID: 3003
+Category: Produce
+Price: 1.99
+Stock: 300
+Description:
+A classic fruit for a reason. Our Organic Bananas are a fantastic source of potassium and quick energy. They are grown organically, ensuring they are free from harmful pesticides. This bunch of 5-7 bananas is perfect for smoothies, baking banana bread, topping oatmeal, or as a simple grab-and-go snack. They are versatile and a favorite for all ages.
+
+---
+Topic: Product - Organic Baby Spinach
+ProductID: 3004
+Category: Produce
+Price: 3.49
+Stock: 90
+Description:
+Our Organic Baby Spinach is pre-washed and ready to eat. These tender, bite-sized leaves are incredibly versatile and have a milder, sweeter taste than mature spinach. It's packed with iron, Vitamin K, and antioxidants. Throw a handful into a smoothie, use it as a base for a fresh salad, or wilt it into pasta dishes and omelets. A quick and easy way to add a serious nutritional boost to any meal.
+
+---
+Topic: Product - Organic Quinoa
+ProductID: 6001
+Category: Pantry
+Price: 7.99
+Stock: 110
+Description:
+A versatile and nutritious ancient grain. Our Organic Quinoa is a complete protein, meaning it contains all nine essential amino acids. It's also gluten-free and a great source of fiber and iron. This pre-rinsed quinoa has a mild, nutty flavor and a fluffy texture when cooked. It's a fantastic substitute for rice, a great base for grain bowls, or a hearty addition to salads and soups.
+
+---
+Topic: Product - Extra Virgin Olive Oil
+ProductID: 6002
+Category: Pantry
+Price: 15.99
+Stock: 70
+Description:
+This premium Extra Virgin Olive Oil is cold-pressed from the first harvest of olives, ensuring the lowest acidity and richest flavor. It has a robust, peppery, and fruity taste profile, perfect for drizzling over salads, dipping bread, or finishing dishes. It's rich in healthy monounsaturated fats and antioxidants. Stored in a dark glass bottle to protect its quality and prevent oxidation.
+
+---
+Topic: Product - Organic Marinara Sauce
+ProductID: 6003
+Category: Pantry
+Price: 4.99
+Stock: 130
+Description:
+Our Organic Marinara Sauce is made from sun-ripened organic tomatoes and a classic blend of herbs like basil, oregano, and garlic. It's slow-cooked in small batches to develop a rich, homemade taste. This sauce is all-natural, with no added sugar, and is gluten-free. It's the perfect, simple foundation for a quick pasta dinner, a pizza base, or for use in lasagna and parmigiana.
+
+---
+Topic: Product - Creamy Almond Butter
+ProductID: 6004
+Category: Pantry
+Price: 8.99
+Stock: 60
+Description:
+This Creamy Almond Butter is made from one simple ingredient: 100% roasted almonds. There is no added sugar, salt, or oils. It's a healthy, keto-friendly spread packed with protein, healthy fats, and Vitamin E. The almonds are perfectly roasted to bring out their natural flavor and ground to a super-smooth, spreadable consistency. Perfect for toast, smoothies, or with apple slices.
+
+---
+Topic: Product - Organic Greek Yogurt
+ProductID: 1002
+Category: Dairy
+Price: 5.49
+Stock: 95
+Description:
+Our Organic Greek Yogurt is thick, creamy, and packed with protein (18g per serving). It's made from organic, pasture-raised milk and contains live and active cultures to support digestive health. This plain, unsweetened yogurt is a perfect high-protein breakfast or snack. Add your own fruit and honey, use it as a substitute for sour cream, or blend it into smoothies for extra creaminess.
+
+---
+Topic: Product - Hearty Whole Wheat Loaf
+ProductID: 2002
+Category: Bakery
+Price: 4.50
+Stock: 65
+Description:
+A wholesome and delicious choice for your daily bread. Our Hearty Whole Wheat Loaf is baked fresh using 100% whole wheat flour, giving it a rich, nutty flavor and a dense, satisfying texture. It's sweetened with a touch of honey and contains no artificial preservatives or high-fructose corn syrup. It's an excellent source of fiber and perfect for robust sandwiches or morning toast.
+
+---
+Topic: Product - Wild-Caught Salmon Fillet
+ProductID: 4002
+Category: Meat & Poultry
+Price: 14.99
+Stock: 45
+Description:
+Enjoy the fresh taste of our Wild-Caught Salmon Fillet. Sourced from the cold, clear waters of the Pacific, this salmon is rich in heart-healthy Omega-3 fatty acids and protein. It has a firm texture and a deep, rich flavor that is far superior to farmed salmon. This 8oz, skin-on fillet is perfect for grilling, baking, or pan-searing. It's a premium, healthy choice for an elegant dinner.
+
+---
+Topic: Product - Natural Sparkling Water (12-Pack)
+ProductID: 5002
+Category: Beverages
+Price: 12.99
+Stock: 80
+Description:
+Quench your thirst with our Natural Sparkling Water. Sourced from a pristine mountain spring, this water is naturally carbonated for a crisp, refreshing taste with zero calories, sugar, or sweeteners. It's a healthy alternative to sugary sodas. This 12-pack of glass bottles is perfect for stocking your fridge, entertaining guests, or as a mixer for cocktails.
+
+---
+Topic: Product - Organic Frozen Blueberries
+ProductID: 7001
+Category: Frozen
+Price: 6.99
+Stock: 100
+Description:
+Enjoy the taste of summer all year round with our Organic Frozen Blueberries. These berries are picked at the peak of ripeness and flash-frozen to lock in all their flavor, nutrients, and antioxidants. They are perfect for blending into smoothies, baking into muffins, or adding to yogurt and oatmeal. Since they are frozen, there's no waste, and you always have healthy fruit on hand.
+
+---
+Topic: Product - Thin Crust Veggie Pizza
+ProductID: 7002
+Category: Frozen
+Price: 9.99
+Stock: 50
+Description:
+A delicious and quick meal for busy nights. Our Thin Crust Veggie Pizza is loaded with a vibrant mix of bell peppers, red onions, black olives, and mushrooms, all on top of a zesty tomato sauce and a generous layer of real mozzarella cheese. The crust is thin and crispy. It's made with high-quality ingredients and is free from artificial flavors. Simply bake and serve for a satisfying, meat-free meal.
+
+---
+Topic: Product - 70% Dark Chocolate Bar
+ProductID: 8001
+Category: Snacks
+Price: 3.99
+Stock: 150
+Description:
+Indulge your craving with our 70% Dark Chocolate Bar. This bar is made from ethically-sourced cacao beans, providing a rich, complex flavor that is intense but smooth, with fruity notes and low bitterness. It's a great source of antioxidants and is vegan and soy-free. It's the perfect sophisticated treat for a chocolate connoisseur or for a healthy, satisfying dessert.
+
+---
+Topic: Product - Raw Unsalted Almonds
+ProductID: 8002
+Category: Snacks
+Price: 10.99
+Stock: 100
+Description:
+A simple, healthy, and versatile snack. This 16oz bag contains Raw Unsalted Almonds, a nutritional powerhouse. They are loaded with protein, fiber, healthy fats, and Vitamin E. Eat them by the handful for a quick energy boost, chop them for salads, or use them in your baking. Because they are raw and unsalted, you have full control over their use in your recipes.
