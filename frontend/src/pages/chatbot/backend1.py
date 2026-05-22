@@ -15,6 +15,8 @@ import os
 
 # FIXED: Add dotenv to load the .env file
 from dotenv import load_dotenv
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_script_dir, ".env"))
 load_dotenv()
 # ------------------------------------------------------------------------------
 
@@ -56,6 +58,7 @@ app.add_middleware(
 
 class QueryRequest(BaseModel):
     query: str
+    auth_token: Optional[str] = None
 
 class ChatMessage(BaseModel):
     type: str  # "user", "agent", "thought"
@@ -128,7 +131,9 @@ for reasoning, coding, and chat via their API."""),
     return store.as_retriever(search_kwargs={"k": 3})
 
 def init_sql_db():
-    conn = sqlite3.connect("agentic_rag.db", check_same_thread=False)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(script_dir, "agentic_rag.db")
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     cur = conn.cursor()
     
     cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
@@ -162,8 +167,15 @@ vector_retriever = init_vector_db()
 sql_conn = init_sql_db()
 
 # ------------------------------------------------------------------------------
-# LLM Setup (Groq API)
+# LLM Setup (Groq API) — primary path; database is fallback when API fails
 # ------------------------------------------------------------------------------
+
+_api_status_cache: Dict[str, Any] = {"ok": None, "error": None}
+
+
+def has_groq_api_key() -> bool:
+    return bool(os.environ.get("GROQ_API_KEY", "").strip())
+
 
 def get_llm(temperature: float = 0.0, format_json: bool = False, model: str = "llama-3.1-8b-instant"):
     if not DEEPSEEK_API_AVAILABLE:
@@ -187,22 +199,135 @@ def get_llm(temperature: float = 0.0, format_json: bool = False, model: str = "l
 
 
 def get_sql_llm():
-    # Use a more powerful model for SQL generation.
-    # 'qwen/qwen3-32b' is noted for strong agent capabilities.
     return get_llm(temperature=0.0, model="qwen/qwen3-32b")
+
+
+def check_groq_api(force: bool = False) -> bool:
+    """Return True when Groq API key is set and a live call succeeds."""
+    if not has_groq_api_key() or not DEEPSEEK_API_AVAILABLE:
+        _api_status_cache["ok"] = False
+        _api_status_cache["error"] = "GROQ_API_KEY missing or langchain-openai not installed"
+        return False
+
+    if not force and _api_status_cache["ok"] is not None:
+        return bool(_api_status_cache["ok"])
+
+    try:
+        llm = get_llm(temperature=0.0, model="llama-3.1-8b-instant")
+        llm.invoke([HumanMessage(content="Reply with OK only.")])
+        _api_status_cache["ok"] = True
+        _api_status_cache["error"] = None
+        return True
+    except Exception as e:
+        _api_status_cache["ok"] = False
+        _api_status_cache["error"] = str(e)
+        return False
+
+
+def invalidate_api_cache():
+    _api_status_cache["ok"] = None
+    _api_status_cache["error"] = None
 # ------------------------------------------------------------------------------
-# Core Agent Functions
+# Database fallback (when Groq API is unavailable or fails)
 # ------------------------------------------------------------------------------
 
-async def route_query(query: str) -> Dict[str, Any]:
-    # FIXED: Use the default Groq model
+def fallback_route_query(query: str, live_configured: bool = False) -> Dict[str, Any]:
+    q = query.lower()
+    if live_configured:
+        if any(k in q for k in ["product", "price", "stock", "category", "fruit", "bread", "milk", "rice", "buy", "catalog"]):
+            return {"tool": "vector_search", "reasoning": "Offline: live catalog keywords"}
+        if any(k in q for k in ["order", "delivery", "shipped", "pending", "team", "employee"]):
+            return {"tool": "sql_query", "reasoning": "Offline: live structured-data keywords"}
+    if any(k in q for k in ["user", "employee", "department", "how many", "list", "show", "who is", "email"]):
+        return {"tool": "sql_query", "reasoning": "Offline: matched database/employee keywords"}
+    if any(k in q for k in ["what", "explain", "how does", "define", "rag", "agent", "vector", "langgraph", "crag"]):
+        return {"tool": "vector_search", "reasoning": "Offline: matched knowledge-base keywords"}
+    return {"tool": "general_chat", "reasoning": "Offline: no tool-specific keywords"}
+
+
+def fallback_vector_search(query: str) -> str:
+    docs = vector_retriever.get_relevant_documents(query)
+    if not docs:
+        return "No relevant documents found in the local Chroma knowledge base."
+    return "\n\n---\n\n".join(d.page_content for d in docs)
+
+
+def _format_sql_results(sql: str, rows: list, cols: list) -> str:
+    if not rows:
+        return f"SQL Query:\n```{sql}\n```\n\nResults:\nNo results found."
+    formatted = [dict(zip(cols, r)) for r in rows]
+    return f"SQL Query:\n```{sql}\n```\n\nResults:\n```json\n{json.dumps(formatted, indent=2)}\n```"
+
+
+def fallback_sql_query(query: str) -> str:
+    q = query.lower()
+    cur = sql_conn.cursor()
+    sql = ""
+    try:
+        departments = ["engineering", "marketing", "sales"]
+        dept = next((d.title() for d in departments if d in q), None)
+
+        if dept and any(k in q for k in ["how many", "count", "number of"]):
+            sql = f"SELECT COUNT(*) AS count FROM users WHERE department = '{dept}'"
+        elif dept:
+            sql = f"SELECT * FROM users WHERE department = '{dept}'"
+        elif any(k in q for k in ["list", "all users", "all employees", "show users", "show employees"]):
+            sql = "SELECT * FROM users"
+        elif "who is" in q:
+            name_part = query.lower().split("who is", 1)[-1].strip().strip("?")
+            sql = f"SELECT * FROM users WHERE LOWER(name) LIKE '%{name_part}%'"
+        else:
+            sql = "SELECT id, name, department, email FROM users LIMIT 10"
+
+        cur.execute(sql)
+        rows = cur.fetchall()
+        cols = [d[0] for d in cur.description] if cur.description else []
+        return _format_sql_results(sql, rows, cols)
+    except Exception as e:
+        return f"Local SQL fallback error: {e}\nAttempted SQL: {sql}"
+
+
+def fallback_generate_answer(query: str, context: str, tool: str) -> str:
+    q = query.lower()
+    if tool == "general_chat":
+        if any(g in q for g in ["hi", "hello", "hey", "good morning", "good afternoon"]):
+            return (
+                "Hello! The Groq API is unavailable, so I'm answering from local data only. "
+                "Ask about RAG/agents (knowledge base) or users/departments (SQLite)."
+            )
+        return (
+            "I'm running in database-only mode because the Groq API is not available. "
+            "Try questions about RAG, vector databases, or employees in the users table."
+        )
+    if not context.strip():
+        return "I could not find matching data in the local knowledge base or SQLite database."
+    return (
+        "Here is what I found using local databases (Groq API unavailable):\n\n"
+        f"{context}\n\n"
+        "_Enable GROQ_API_KEY for AI-generated summaries and smarter routing._"
+    )
+
+
+# ------------------------------------------------------------------------------
+# Core Agent Functions (API-first)
+# ------------------------------------------------------------------------------
+
+async def route_query(query: str, live_configured: bool = False) -> Dict[str, Any]:
     llm = get_llm(temperature=0.0, format_json=True, model="llama-3.1-8b-instant")
-    
-    system_prompt = """You are a query router. Classify the user's query into one of the following categories:
-1) "vector_search": For questions about concepts, definitions, or explanations (e.g., "What is RAG?", "Explain agents").
-2) "sql_query": For questions about specific users, employees, or departments in the 'users' SQL table (e.g., "How many users in Engineering?", "List all employees").
-3) "general_chat": For greetings, small talk, or any other query.
 
+    live_rules = ""
+    if live_configured:
+        live_rules = """
+When the live supermarket API is available:
+- "vector_search": product catalog questions (price, stock, category, recommendations).
+- "sql_query": orders, deliveries, team/employee lists, or tabular store data from the live API.
+"""
+
+    system_prompt = f"""You are a query router. Classify the user's query into one of the following categories:
+1) "vector_search": For questions about concepts, definitions, explanations (e.g., "What is RAG?"), OR product/catalog search when live API is on.
+2) "sql_query": For structured data — users/departments in the demo SQLite table, OR orders/team/live catalog filters when live API is on.
+3) "general_chat": For greetings, small talk, or any other query.
+{live_rules}
 You must return ONLY a JSON object with "tool" and "reasoning" keys.
 """
     
@@ -224,15 +349,22 @@ You must return ONLY a JSON object with "tool" and "reasoning" keys.
             return {"tool": "vector_search", "reasoning": "Fallback: Knowledge keywords detected"}
         return {"tool": "general_chat", "reasoning": "Fallback: Default to chat"}
 
-async def vector_search(query: str) -> str:
-    """Performs RAG with a relevance check."""
+async def vector_search(query: str, auth_token: Optional[str] = None) -> str:
+    """Live API vector search first, then local Chroma with optional Groq relevance check."""
+    from live_data import is_supermarket_api_configured, live_vector_search
+
+    if is_supermarket_api_configured():
+        live_context, live_err = await live_vector_search(query, auth_token, k=5)
+        if live_context:
+            return live_context
+        if live_err:
+            print(f"Live vector search: {live_err}")
+
     docs = vector_retriever.get_relevant_documents(query)
     if not docs:
         return "No relevant documents found."
-    
-    # FIXED: Use the default Groq model
+
     llm = get_llm(temperature=0.0, model="llama-3.1-8b-instant")
-    
     kept = []
     for d in docs:
         check_prompt = f"""Is the following document relevant to the user's query?
@@ -243,18 +375,27 @@ Document: {d.page_content}
 
 Answer:"""
         ans = llm.invoke([HumanMessage(content=check_prompt)]).content.strip().upper()
-        
         if "RELEVANT" in ans and "IRRELEVANT" not in ans:
             kept.append(d)
-            
+
     if not kept:
         return "No relevant results found after validation."
-        
-    return "\n\n---\n\n".join(x.page_content for x in kept)
 
-async def sql_query(query: str) -> str:
-    """Generates and executes a SQL query."""
-    llm = get_sql_llm() # This correctly calls the qwen/qwen3-32b model
+    return "[Local knowledge base]\n\n" + "\n\n---\n\n".join(x.page_content for x in kept)
+
+
+async def sql_query(query: str, auth_token: Optional[str] = None) -> str:
+    """Live REST structured query first, then SQLite + Groq text-to-SQL."""
+    from live_data import is_supermarket_api_configured, live_structured_query
+
+    if is_supermarket_api_configured():
+        live_context, live_err = await live_structured_query(query, auth_token)
+        if live_context:
+            return live_context
+        if live_err:
+            print(f"Live structured query: {live_err}")
+
+    llm = get_sql_llm()
     
     prompt = f"""You are a SQLite SQL expert.
 Given the table schema:
@@ -285,7 +426,7 @@ Return ONLY the SQL statement, and do not wrap it in markdown.
         
         return f"SQL Query:\n```{sql}\n```\n\nResults:\n```json\n{json.dumps(formatted, indent=2)}\n```"
     except Exception as e:
-        return f"SQL Error: {e}\nGenerated SQL: {sql}"
+        return f"SQL Error: {e}\nGenerated SQL: {sql}\n(Fallback: local SQLite demo users table)"
 
 async def generate_answer(query: str, context: str, tool: str) -> str:
     """Generates the final answer based on context."""
@@ -315,35 +456,74 @@ Answer:"""
 
 @app.get("/")
 async def root():
+    api_ok = check_groq_api()
     return {
-        "message": "Agentic RAG API with Groq API", # FIXED
-        "deepseek_api_available": DEEPSEEK_API_AVAILABLE, # This is fine
-        # FIXED: Updated the model names
+        "message": "Agentic RAG API with Groq API",
+        "mode": "api" if api_ok else "database_fallback",
+        "deepseek_api_available": DEEPSEEK_API_AVAILABLE,
         "models": {
-            "router_chat_rag": "llama-3.1-8b-instant", 
-            "sql_generation": "qwen/qwen3-32b"
+            "router_chat_rag": "llama-3.1-8b-instant",
+            "sql_generation": "qwen/qwen3-32b",
         },
     }
 
 @app.get("/health")
 async def health():
-    try:
-        _ = get_llm()
-        return {"status": "healthy", "groq_api": "connected"} # FIXED
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+    from live_data import check_live_api, is_supermarket_api_configured
+
+    api_ok = check_groq_api(force=True)
+    live_status = await check_live_api()
+    data_mode = "live_api" if live_status.get("reachable") else (
+        "local_fallback" if not is_supermarket_api_configured() else "live_api_unavailable"
+    )
+    return {
+        "status": "healthy" if api_ok or (vector_retriever and sql_conn) or live_status.get("reachable") else "unhealthy",
+        "llm_mode": "api" if api_ok else "database_fallback",
+        "data_mode": data_mode,
+        "groq_api": "connected" if api_ok else "unavailable",
+        "groq_api_error": _api_status_cache.get("error"),
+        "live_supermarket_api": live_status,
+        "local_vector_db": vector_retriever is not None,
+        "local_sql_db": sql_conn is not None,
+    }
+
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(req: QueryRequest):
+    from live_data import is_supermarket_api_configured
+
     messages: List[ChatMessage] = []
+    use_api = check_groq_api()
+    live_on = is_supermarket_api_configured()
     try:
+        mode_label = "Groq API" if use_api else "local database fallback"
         messages.append(ChatMessage(
             type="thought",
-            content="🤔 Analyzing query and choosing the right tool...",
+            content=f"🤔 Analyzing query ({mode_label})...",
             timestamp=datetime.now().isoformat()
         ))
+        if live_on:
+            messages.append(ChatMessage(
+                type="thought",
+                content="🌐 Live supermarket API enabled — fetching fresh data when needed",
+                timestamp=datetime.now().isoformat(),
+            ))
 
-        routed = await route_query(req.query)
+        if use_api:
+            try:
+                routed = await route_query(req.query, live_configured=live_on)
+            except Exception as e:
+                invalidate_api_cache()
+                use_api = False
+                routed = fallback_route_query(req.query, live_configured=live_on)
+                messages.append(ChatMessage(
+                    type="thought",
+                    content=f"⚠ Groq API failed ({e}). Switching to database fallback.",
+                    timestamp=datetime.now().isoformat()
+                ))
+        else:
+            routed = fallback_route_query(req.query, live_configured=live_on)
+
         tool = routed.get("tool", "general_chat")
 
         messages.append(ChatMessage(
@@ -352,12 +532,49 @@ async def chat(req: QueryRequest):
             timestamp=datetime.now().isoformat()
         ))
 
+        context = ""
         if tool == "vector_search":
-            context = await vector_search(req.query)
+            if use_api:
+                try:
+                    context = await vector_search(req.query, req.auth_token)
+                except Exception as e:
+                    invalidate_api_cache()
+                    use_api = False
+                    context = fallback_vector_search(req.query)
+                    messages.append(ChatMessage(
+                        type="thought",
+                        content=f"⚠ Vector search failed ({e}). Using local ChromaDB.",
+                        timestamp=datetime.now().isoformat()
+                    ))
+            else:
+                from live_data import live_vector_search
+                if live_on:
+                    live_ctx, _ = await live_vector_search(req.query, req.auth_token)
+                    context = live_ctx or fallback_vector_search(req.query)
+                else:
+                    context = fallback_vector_search(req.query)
         elif tool == "sql_query":
-            context = await sql_query(req.query)
+            if use_api:
+                try:
+                    context = await sql_query(req.query, req.auth_token)
+                except Exception as e:
+                    invalidate_api_cache()
+                    use_api = False
+                    context = fallback_sql_query(req.query)
+                    messages.append(ChatMessage(
+                        type="thought",
+                        content=f"⚠ Structured query failed ({e}). Using SQLite heuristics.",
+                        timestamp=datetime.now().isoformat()
+                    ))
+            else:
+                from live_data import live_structured_query
+                if live_on:
+                    live_ctx, _ = await live_structured_query(req.query, req.auth_token)
+                    context = live_ctx or fallback_sql_query(req.query)
+                else:
+                    context = fallback_sql_query(req.query)
         else:
-            context = "" # No context needed for general_chat
+            context = ""
 
         if context:
             messages.append(ChatMessage(
@@ -372,13 +589,26 @@ async def chat(req: QueryRequest):
             timestamp=datetime.now().isoformat()
         ))
 
-        final = await generate_answer(req.query, context, tool)
+        if use_api:
+            try:
+                final = await generate_answer(req.query, context, tool)
+            except Exception as e:
+                invalidate_api_cache()
+                final = fallback_generate_answer(req.query, context, tool)
+                messages.append(ChatMessage(
+                    type="thought",
+                    content=f"⚠ Answer generation API failed ({e}). Returning local data summary.",
+                    timestamp=datetime.now().isoformat()
+                ))
+        else:
+            final = fallback_generate_answer(req.query, context, tool)
+
         return ChatResponse(messages=messages, final_answer=final)
 
     except Exception as e:
         error_message = f"❌ Error: {str(e)}"
-        print(error_message) # Log to server console
-        
+        print(error_message)
+
         messages.append(ChatMessage(
             type="thought",
             content=error_message,
@@ -401,7 +631,9 @@ if __name__ == "__main__":
     print("\nRequirements:")
     print("  1. Go to [https://console.groq.com/](https://console.groq.com/) to get an API key.")
     print("  2. Create a `.env` file and set `GROQ_API_KEY='your-key'`")
-    print("  3. Install Python dependencies:")
+    print("  3. Optional live DB: set `SUPERMARKET_API_URL=http://localhost:3000`")
+    print("     and `SUPERMARKET_API_TOKEN` or pass auth_token from the frontend")
+    print("  4. Install Python dependencies:")
     print("     `pip install -r requirements.txt`")
     print("\nServer will be live at: http://localhost:8000")
     print("Check health at: http://localhost:8000/health")
