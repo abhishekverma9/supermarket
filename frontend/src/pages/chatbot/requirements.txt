@@ -8,3 +8,4 @@ langchain-core
 chromadb
 uvicorn[standard]
 sentence-transformers
+networkx

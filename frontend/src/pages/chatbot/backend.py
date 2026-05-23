@@ -163,17 +163,30 @@ def invalidate_api_cache():
 
 async def simple_rag_search(query: str, auth_token: Optional[str] = None) -> tuple[str, str]:
     """
-    Live API vector search first (MySQL via Node REST), then local Chroma/data.txt.
-    Returns (context, source) where source is live_api | local.
+    Retrieval levels:
+    1) Live API (Graph RAG + vector on MySQL via Node REST)
+    2) Offline Graph RAG on data.txt
+    3) Local Chroma vector fallback
+    Returns (context, source).
     """
     from live_data import is_supermarket_api_configured, live_vector_search
+    from graph_rag import offline_catalog_graph_search
 
     if is_supermarket_api_configured():
         live_context, live_err = await live_vector_search(query, auth_token, k=5)
         if live_context:
-            return live_context, "live_api"
+            src = "live_graph" if "[Live Graph RAG" in live_context else "live_api"
+            return live_context, src
         if live_err:
-            print(f"Live vector search fallback: {live_err}")
+            print(f"Live retrieval fallback: {live_err}")
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(script_dir, "data.txt")
+    graph_ctx, graph_err = offline_catalog_graph_search(query, data_path, max_chunks=5)
+    if graph_ctx:
+        return graph_ctx, "local_graph"
+    if graph_err:
+        print(f"Offline Graph RAG fallback: {graph_err}")
 
     if not vector_retriever:
         return "Database not initialized.", "local"
@@ -182,7 +195,9 @@ async def simple_rag_search(query: str, auth_token: Optional[str] = None) -> tup
     if not docs:
         return "No relevant documents found.", "local"
 
-    context_text = "\n\n---\n\n".join([d.page_content for d in docs])
+    context_text = "[Chroma vector fallback]\n\n" + "\n\n---\n\n".join(
+        [d.page_content for d in docs]
+    )
     return context_text, "local"
 
 def fallback_generate_answer(query: str, context: str) -> str:
@@ -243,6 +258,8 @@ async def health():
     from live_data import check_live_api, is_supermarket_api_configured
 
     api_ok = check_groq_api(force=True)
+    from graph_rag import get_graph_health
+
     live_status = await check_live_api()
     data_mode = "live_api" if live_status.get("reachable") else (
         "local_fallback" if not is_supermarket_api_configured() else "live_api_unavailable"
@@ -254,6 +271,7 @@ async def health():
         "groq_api": "connected" if api_ok else "unavailable",
         "groq_api_error": _api_status_cache.get("error"),
         "live_supermarket_api": live_status,
+        "graph_rag": get_graph_health(),
         "local_vector_db": vector_retriever is not None,
     }
 
@@ -273,10 +291,17 @@ async def chat(req: QueryRequest):
         ))
 
         context, data_source = await simple_rag_search(req.query, req.auth_token)
-        if data_source == "live_api":
+        if data_source in ("live_api", "live_graph"):
+            label = "Graph RAG + live API" if data_source == "live_graph" else "live API + vector search"
             messages.append(ChatMessage(
                 type="thought",
-                content="🌐 Using live supermarket database (REST API + vector search)",
+                content=f"🌐 Using live supermarket database ({label})",
+                timestamp=datetime.now().isoformat(),
+            ))
+        elif data_source == "local_graph":
+            messages.append(ChatMessage(
+                type="thought",
+                content="🕸️ Offline Graph RAG on local product catalog",
                 timestamp=datetime.now().isoformat(),
             ))
         elif is_supermarket_api_configured():

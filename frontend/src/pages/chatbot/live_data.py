@@ -88,6 +88,13 @@ async def fetch_live_products(token: Optional[str] = None, force: bool = False) 
     _products_cache["rows"] = products
     _products_cache["fetched_at"] = now
     _products_cache["error"] = None
+
+    try:
+        from graph_rag import _graph_cache
+        _graph_cache.pop("live_catalog", None)
+    except ImportError:
+        pass
+
     return products
 
 
@@ -144,7 +151,7 @@ async def live_vector_search(
     k: int = 5,
 ) -> Tuple[Optional[str], Optional[str]]:
     """
-    Vector search over live products from the supermarket API.
+    Level-1 live retrieval: Graph RAG on live catalog, then vector search fallback.
     Returns (context_text, error_message).
     """
     if not is_supermarket_api_configured():
@@ -155,6 +162,14 @@ async def live_vector_search(
         return None, "Live API configured but no auth token (set SUPERMARKET_API_TOKEN or pass auth_token)"
 
     try:
+        from graph_rag import live_catalog_graph_search
+
+        graph_ctx, graph_err = await live_catalog_graph_search(query, auth, max_chunks=k)
+        if graph_ctx:
+            return graph_ctx, None
+        if graph_err:
+            print(f"Live Graph RAG fallback to vector: {graph_err}")
+
         retriever = await _get_live_retriever(auth, k=k)
         if retriever is None:
             return None, "Live API returned no products"

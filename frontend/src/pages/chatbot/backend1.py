@@ -96,22 +96,27 @@ def extract_first_fence(text: str, lang_hint: Optional[str] = None) -> Optional[
     return "\n".join(buf).strip() if buf else None
 
 # ------------------------------------------------------------------------------
-# Databases: Vector (Chroma) + SQL (SQLite)
+# Databases: Vector (Chroma) + SQL (SQLite) + Graph RAG (offline)
 # ------------------------------------------------------------------------------
 
+KNOWLEDGE_DOC_TEXTS = [
+    """RAG (Retrieval-Augmented Generation) combines retrieval with generation.
+It retrieves relevant documents and uses them as context for accurate responses.""",
+    """Agentic systems use autonomous agents to plan, reason, and use tools.
+LangGraph supports agentic workflows with state and conditional routing.""",
+    """Vector databases (ChromaDB, FAISS, Pinecone) store embeddings for
+semantic search and fast similarity queries.""",
+    """LLMs like DeepSeek's family (including chat and coder models) can be used
+for reasoning, coding, and chat via their API.""",
+    """Text-to-SQL translates natural language questions into SQL queries for relational databases.""",
+    """CRAG (Corrective RAG) validates retrieved context with an evaluator and retries if needed.""",
+    """Graph RAG builds a knowledge graph of entities and relationships, then traverses the graph
+to retrieve connected context for multi-hop questions.""",
+]
+
+
 def init_vector_db():
-    docs = [
-        Document(page_content="""RAG (Retrieval-Augmented Generation) combines retrieval with generation.
-It retrieves relevant documents and uses them as context for accurate responses."""),
-        Document(page_content="""Agentic systems use autonomous agents to plan, reason, and use tools.
-LangGraph supports agentic workflows with state and conditional routing."""),
-        Document(page_content="""Vector databases (ChromaDB, FAISS, Pinecone) store embeddings for
-semantic search and fast similarity queries."""),
-        Document(page_content="""LLMs like DeepSeek's family (including chat and coder models) can be used
-for reasoning, coding, and chat via their API."""),
-        Document(page_content="""Text-to-SQL translates natural language questions into SQL queries for relational databases."""),
-        Document(page_content="""CRAG (Corrective RAG) validates retrieved context with an evaluator and retries if needed."""),
-    ]
+    docs = [Document(page_content=t) for t in KNOWLEDGE_DOC_TEXTS]
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_documents(docs)
     
@@ -245,11 +250,46 @@ def fallback_route_query(query: str, live_configured: bool = False) -> Dict[str,
     return {"tool": "general_chat", "reasoning": "Offline: no tool-specific keywords"}
 
 
+def _local_graph_knowledge_search(query: str) -> Optional[str]:
+    from graph_rag import offline_knowledge_graph_search
+
+    ctx, err = offline_knowledge_graph_search(query, KNOWLEDGE_DOC_TEXTS, max_chunks=5)
+    if ctx:
+        return ctx
+    if err:
+        print(f"Knowledge Graph RAG: {err}")
+    return None
+
+
+def _local_graph_catalog_search(query: str) -> Optional[str]:
+    data_path = os.path.join(_script_dir, "data.txt")
+    if not os.path.exists(data_path):
+        return None
+    from graph_rag import offline_catalog_graph_search
+
+    ctx, err = offline_catalog_graph_search(query, data_path, max_chunks=5)
+    if ctx:
+        return ctx
+    if err:
+        print(f"Catalog Graph RAG: {err}")
+    return None
+
+
 def fallback_vector_search(query: str) -> str:
+    q = query.lower()
+    if any(k in q for k in ["product", "price", "stock", "category", "fruit", "bread", "milk", "buy"]):
+        catalog = _local_graph_catalog_search(query)
+        if catalog:
+            return catalog
+
+    graph_ctx = _local_graph_knowledge_search(query)
+    if graph_ctx:
+        return graph_ctx
+
     docs = vector_retriever.get_relevant_documents(query)
     if not docs:
         return "No relevant documents found in the local Chroma knowledge base."
-    return "\n\n---\n\n".join(d.page_content for d in docs)
+    return "[Chroma vector fallback]\n\n" + "\n\n---\n\n".join(d.page_content for d in docs)
 
 
 def _format_sql_results(sql: str, rows: list, cols: list) -> str:
@@ -260,6 +300,14 @@ def _format_sql_results(sql: str, rows: list, cols: list) -> str:
 
 
 def fallback_sql_query(query: str) -> str:
+    from graph_rag import offline_users_graph_search
+
+    graph_ctx, graph_err = offline_users_graph_search(query, sql_conn, max_chunks=8)
+    if graph_ctx:
+        return graph_ctx
+    if graph_err:
+        print(f"Users Graph RAG: {graph_err}")
+
     q = query.lower()
     cur = sql_conn.cursor()
     sql = ""
@@ -350,7 +398,7 @@ You must return ONLY a JSON object with "tool" and "reasoning" keys.
         return {"tool": "general_chat", "reasoning": "Fallback: Default to chat"}
 
 async def vector_search(query: str, auth_token: Optional[str] = None) -> str:
-    """Live API vector search first, then local Chroma with optional Groq relevance check."""
+    """Live Graph/vector API first, then offline Graph RAG, then Chroma + Groq relevance."""
     from live_data import is_supermarket_api_configured, live_vector_search
 
     if is_supermarket_api_configured():
@@ -358,7 +406,17 @@ async def vector_search(query: str, auth_token: Optional[str] = None) -> str:
         if live_context:
             return live_context
         if live_err:
-            print(f"Live vector search: {live_err}")
+            print(f"Live retrieval: {live_err}")
+
+    q = query.lower()
+    if any(k in q for k in ["product", "price", "stock", "category", "fruit", "bread", "milk", "buy", "catalog"]):
+        catalog = _local_graph_catalog_search(query)
+        if catalog:
+            return catalog
+
+    graph_ctx = _local_graph_knowledge_search(query)
+    if graph_ctx:
+        return graph_ctx
 
     docs = vector_retriever.get_relevant_documents(query)
     if not docs:
@@ -470,6 +528,7 @@ async def root():
 @app.get("/health")
 async def health():
     from live_data import check_live_api, is_supermarket_api_configured
+    from graph_rag import get_graph_health
 
     api_ok = check_groq_api(force=True)
     live_status = await check_live_api()
@@ -483,6 +542,8 @@ async def health():
         "groq_api": "connected" if api_ok else "unavailable",
         "groq_api_error": _api_status_cache.get("error"),
         "live_supermarket_api": live_status,
+        "graph_rag": get_graph_health(),
+        "retrieval_stack": ["live_graph_rag", "live_vector", "offline_graph_rag", "chroma_sqlite"],
         "local_vector_db": vector_retriever is not None,
         "local_sql_db": sql_conn is not None,
     }
