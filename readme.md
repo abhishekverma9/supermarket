@@ -4,6 +4,8 @@
 
 ### A Full-Stack Role-Based Supermarket Platform with AI-Powered Shopping Assistant
 
+🔗 **Live Application:** [https://shop4ever.vercel.app/](https://shop4ever.vercel.app/login)
+
 [![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![MySQL](https://img.shields.io/badge/MySQL-Aiven_Cloud-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://aiven.io/)
