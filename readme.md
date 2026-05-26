@@ -489,15 +489,6 @@ The platform uses Gmail SMTP for sending OTP emails. To configure:
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
----
-
-## 👨‍💻 Author
-
-**Abhishek Verma**
-- GitHub: [@abhishekverma9](https://github.com/abhishekverma9)
-- Email: oyeitsabhishek@gmail.com
-
----
 
 <div align="center">
 
