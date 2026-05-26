@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
+import { FaGoogle, FaFacebook, FaApple } from "react-icons/fa";
 
 const LoginPage = () => {
   const [mode, setMode] = useState("login");
@@ -32,6 +33,10 @@ const LoginPage = () => {
   const timerRef = useRef(null);
   const navigate = useNavigate();
   const { token, setToken, backendUrl, role, setRole } = useContext(AuthContext);
+
+  const handleSocialClick = () => {
+    toast.error("Something went wrong with the social sign-in provider. Please try logging in with email instead.");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -419,72 +424,110 @@ const LoginPage = () => {
             </div>
           ) : (
             /* Form Step */
-            <form className="space-y-3" onSubmit={handleSubmit}>
-              {role === "consumer" && mode === "signup" && (
-                <>
-                  <input
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    type="text"
-                    placeholder="First Name"
-                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                    required
-                  />
-                  <input
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    type="text"
-                    placeholder="Last Name"
-                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                    required
-                  />
-                  <input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    type="tel"
-                    placeholder="Phone Number"
-                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                    required
-                  />
-                </>
-              )}
+            <>
+              <form className="space-y-3" onSubmit={handleSubmit}>
+                {role === "consumer" && mode === "signup" && (
+                  <>
+                    <input
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      type="text"
+                      placeholder="First Name"
+                      className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                      required
+                    />
+                    <input
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      type="text"
+                      placeholder="Last Name"
+                      className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                      required
+                    />
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      type="tel"
+                      placeholder="Phone Number"
+                      className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                      required
+                    />
+                  </>
+                )}
 
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                type="email"
-                placeholder="Email"
-                className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                required
-              />
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                placeholder="Password"
-                className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                required
-              />
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  placeholder="Email"
+                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                  required
+                />
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  placeholder="Password"
+                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                  required
+                />
 
-              {wrongPasswordAttempted && mode === "login" && (
+                {wrongPasswordAttempted && mode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => setForgotPasswordModal(true)}
+                    className="text-sm text-[#FF8C00] hover:underline text-right w-full"
+                  >
+                    Forgot Password?
+                  </button>
+                )}
+
                 <button
-                  type="button"
-                  onClick={() => setForgotPasswordModal(true)}
-                  className="text-sm text-[#FF8C00] hover:underline text-right w-full"
+                  type="submit"
+                  className="w-full px-4 py-3 mt-2 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
                 >
-                  Forgot Password?
+                  {mode === "signup"
+                    ? "Sign Up as Consumer"
+                    : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
                 </button>
-              )}
+              </form>
 
-              <button
-                type="submit"
-                className="w-full px-4 py-3 mt-2 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
-              >
-                {mode === "signup"
-                  ? "Sign Up as Consumer"
-                  : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
-              </button>
-            </form>
+              {/* Social Logins */}
+              <div className="mt-5">
+                <div className="relative flex items-center justify-center my-3">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-600/40"></div>
+                  </div>
+                  <span className="relative px-3 bg-[#242424] text-xs text-gray-400 uppercase">
+                    Or continue with
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mt-3">
+                  <button
+                    type="button"
+                    onClick={handleSocialClick}
+                    className="flex justify-center items-center py-2.5 rounded-xl bg-[#1e1e1e] border border-gray-600/40 hover:bg-red-500/10 hover:border-red-500/50 transition-colors group cursor-pointer"
+                  >
+                    <FaGoogle className="text-gray-400 group-hover:text-red-500 text-lg" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSocialClick}
+                    className="flex justify-center items-center py-2.5 rounded-xl bg-[#1e1e1e] border border-gray-600/40 hover:bg-blue-600/10 hover:border-blue-600/50 transition-colors group cursor-pointer"
+                  >
+                    <FaFacebook className="text-gray-400 group-hover:text-blue-600 text-lg" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSocialClick}
+                    className="flex justify-center items-center py-2.5 rounded-xl bg-[#1e1e1e] border border-gray-600/40 hover:bg-white/10 hover:border-white transition-colors group cursor-pointer"
+                  >
+                    <FaApple className="text-gray-400 group-hover:text-white text-lg" />
+                  </button>
+                </div>
+              </div>
+            </>
           )}
 
           {/* Toggle Mode */}
