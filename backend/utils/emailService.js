@@ -109,6 +109,38 @@ export const sendLoginOTPEmail = async (email, otp) => {
   });
 };
 
+// Send Signup OTP email
+export const sendSignupOTPEmail = async (email, otp) => {
+  return sendEmailViaBrevo({
+    to: email,
+    subject: "Your Signup Verification OTP - Shop4Ever",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #FF8C00 0%, #8A2BE2 100%); padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">Shop4Ever</h1>
+        </div>
+        <div style="padding: 30px; background: #f5f5f5;">
+          <h2 style="color: #333;">Signup Verification</h2>
+          <p style="color: #666; font-size: 16px;">
+            Thank you for registering. Use the following OTP to verify your email and complete your signup:
+          </p>
+          <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <h1 style="color: #FF8C00; font-size: 36px; letter-spacing: 8px; margin: 0;">${otp}</h1>
+          </div>
+          <p style="color: #666; font-size: 14px;">
+            This OTP will expire in 10 minutes. If you didn't request this, please ignore this email.
+          </p>
+          <p style="color: #999; font-size: 12px; margin-top: 30px;">
+            This is an automated message, please do not reply.
+          </p>
+        </div>
+      </div>
+    `,
+    text: `Signup Verification - Shop4Ever\n\nOTP: ${otp}\n\nValid for 10 minutes.`,
+  });
+};
+
+
 // Send Order Confirmation Email
 export const sendOrderConfirmationEmail = async (email, orderData) => {
   const deliveryAddress = `

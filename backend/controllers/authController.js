@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import { db } from "../config/db.js";
 import { generateToken } from "../utils/generateToken.js";
 import { generateOTP, storeOTP, verifyOTP, isOTPVerified, removeOTP, canResendOTP } from "../utils/otpStore.js";
-import { sendLoginOTPEmail, sendOTPEmail } from "../utils/emailService.js";
+import { sendLoginOTPEmail, sendOTPEmail, sendSignupOTPEmail } from "../utils/emailService.js";
 import { storeAuthSession, getAuthSession, removeAuthSession } from "../utils/authSessionStore.js";
 
 // ---------------------------
@@ -480,7 +480,7 @@ const sendSignupOtp = async (req, res) => {
     });
 
     // Send OTP via email
-    const emailResult = await sendOTPEmail(email, otp);
+    const emailResult = await sendSignupOTPEmail(email, otp);
 
     if (!emailResult.success) {
       // In development, return OTP in response for testing
