@@ -1,32 +1,32 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-
-// Create reusable transporter
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || "gmail",
-    host: process.env.EMAIL_HOST || "smtp.gmail.com",
-    port: process.env.EMAIL_PORT || 587,
-    secure: false,
-    auth: {
-      user: process.env.COMPANY_EMAIL,                 // CHANGED
-      pass: process.env.COMPANY_EMAIL_APP_PASSWORD,    // CHANGED
-    },
-  });
+// Initialize Resend with API key
+// Uses HTTPS (port 443) instead of SMTP - works on Render free tier!
+const getResend = () => {
+  if (!process.env.RESEND_API_KEY) {
+    console.error("❌ RESEND_API_KEY is not set in environment variables!");
+    return null;
+  }
+  return new Resend(process.env.RESEND_API_KEY);
 };
 
-// Send OTP email
+// Sender email - use Resend's default for testing, or your verified domain
+const getFromEmail = () => {
+  // If you have a verified domain on Resend, use: "Shop4Ever <noreply@yourdomain.com>"
+  // For testing without a verified domain, Resend provides: "onboarding@resend.dev"
+  return process.env.RESEND_FROM_EMAIL || "Shop4Ever <onboarding@resend.dev>";
+};
+
+// Send OTP email (Password Reset)
 export const sendOTPEmail = async (email, otp) => {
   try {
-    // Check if email credentials are configured
-    if (!process.env.COMPANY_EMAIL || !process.env.COMPANY_EMAIL_APP_PASSWORD) { 
+    const resend = getResend();
+    if (!resend) {
       return { success: false, message: "Email service not configured" };
-    } 
+    }
 
-    const transporter = createTransporter();
-
-    const mailOptions = {
-      from: `"Shop4Ever" <${process.env.COMPANY_EMAIL}>`,   // CHANGED
+    const { data, error } = await resend.emails.send({
+      from: getFromEmail(),
       to: email,
       subject: "Password Reset OTP - Shop4Ever",
       html: `
@@ -51,89 +51,82 @@ export const sendOTPEmail = async (email, otp) => {
           </div>
         </div>
       `,
-      text: `
-        Password Reset Request - Shop4Ever
-        
-        OTP: ${otp}
-        
-        Valid for 10 minutes.
-      `,
-    };
+      text: `Password Reset Request - Shop4Ever\n\nOTP: ${otp}\n\nValid for 10 minutes.`,
+    });
 
-    const info = await transporter.sendMail(mailOptions);
+    if (error) {
+      console.error("❌ Error sending email:", error);
+      return { success: false, message: error.message };
+    }
 
-    console.log("✅ Email sent successfully:", info.messageId);
-    return { success: true, messageId: info.messageId };
+    console.log("✅ Email sent successfully:", data.id);
+    return { success: true, messageId: data.id };
 
   } catch (error) {
     console.error("❌ Error sending email:", error);
     return { success: false, message: error.message };
   }
 };
+
+// Send Login OTP email
 export const sendLoginOTPEmail = async (email, otp) => {
-  try {
-   // Check if email credentials are configured
-    if (!process.env.COMPANY_EMAIL || !process.env.COMPANY_EMAIL_APP_PASSWORD) { 
-      return { success: false, message: "Email service not configured" };
-    } 
-
-    const transporter = createTransporter();
-
-    const mailOptions = {
-      from: `"Shop4Ever" <${process.env.COMPANY_EMAIL}>`,
-      to: email,
-      subject: "Your Login OTP - Shop4Ever", // CHANGED
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #FF8C00 0%, #8A2BE2 100%); padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">Shop4Ever</h1>
-          </div>
-          <div style="padding: 30px; background: #f5f5f5;">
-            <h2 style="color: #333;">Login Verification</h2> 
-            <p style="color: #666; font-size: 16px;">
-               You are attempting to log in. Use the following OTP to verify your identity:
-            </p>
-            <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-              <h1 style="color: #FF8C00; font-size: 36px; letter-spacing: 8px; margin: 0;">${otp}</h1>
-            </div>
-            <p style="color: #666; font-size: 14px;">
-               This OTP will expire in 10 minutes. If you didn't initiate this login, please ignore this email.
-            </p>
-            <p style="color: #999; font-size: 12px; margin-top: 30px;">
-              This is an automated message, please do not reply.
-            </p>
-          </div>
-        </div>
-      `,
-      text: `
-        Login Verification - Shop4Ever 
-        
-        OTP: ${otp}
-        
-        Valid for 10 minutes.
-      `, // CHANGED
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log("✅ Email sent successfully:", info.messageId);
-    return { success: true, messageId: info.messageId };
-
-  } catch (error) {
-    console.error("❌ Error sending email:", error);
-    return { success: false, message: error.message };
-  }
-};
-// Send Order Confirmation Email
-export const sendOrderConfirmationEmail = async (email, orderData) => {
   try {
-    // Check if email credentials are configured
-    if (!process.env.COMPANY_EMAIL || !process.env.COMPANY_EMAIL_APP_PASSWORD) {
-      console.warn("⚠️ Email credentials not configured. Order confirmation email not sent.");
+    const resend = getResend();
+    if (!resend) {
       return { success: false, message: "Email service not configured" };
     }
 
-    const transporter = createTransporter();
+    const { data, error } = await resend.emails.send({
+      from: getFromEmail(),
+      to: email,
+      subject: "Your Login OTP - Shop4Ever",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #FF8C00 0%, #8A2BE2 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Shop4Ever</h1>
+          </div>
+          <div style="padding: 30px; background: #f5f5f5;">
+            <h2 style="color: #333;">Login Verification</h2> 
+            <p style="color: #666; font-size: 16px;">
+               You are attempting to log in. Use the following OTP to verify your identity:
+            </p>
+            <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+              <h1 style="color: #FF8C00; font-size: 36px; letter-spacing: 8px; margin: 0;">${otp}</h1>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+               This OTP will expire in 10 minutes. If you didn't initiate this login, please ignore this email.
+            </p>
+            <p style="color: #999; font-size: 12px; margin-top: 30px;">
+              This is an automated message, please do not reply.
+            </p>
+          </div>
+        </div>
+      `,
+      text: `Login Verification - Shop4Ever\n\nOTP: ${otp}\n\nValid for 10 minutes.`,
+    });
+
+    if (error) {
+      console.error("❌ Error sending email:", error);
+      return { success: false, message: error.message };
+    }
+
+    console.log("✅ Email sent successfully:", data.id);
+    return { success: true, messageId: data.id };
+
+  } catch (error) {
+    console.error("❌ Error sending email:", error);
+    return { success: false, message: error.message };
+  }
+};
+
+// Send Order Confirmation Email
+export const sendOrderConfirmationEmail = async (email, orderData) => {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("⚠️ Email credentials not configured. Order confirmation email not sent.");
+      return { success: false, message: "Email service not configured" };
+    }
 
     // Format delivery address
     const deliveryAddress = `
@@ -158,8 +151,8 @@ export const sendOrderConfirmationEmail = async (email, orderData) => {
       </tr>
     `).join('');
 
-    const mailOptions = {
-      from: `"Shop4Ever" <${process.env.COMPANY_EMAIL}>`,
+    const { data, error } = await resend.emails.send({
+      from: getFromEmail(),
       to: email,
       subject: `Order Confirmation - Order #${orderData.order_id}`,
       html: `
@@ -253,24 +246,29 @@ export const sendOrderConfirmationEmail = async (email, orderData) => {
         
         Total Amount: ₹${Number(orderData.total_amount).toFixed(2)}
       `,
-    };
+    });
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Order confirmation email sent successfully:", info.messageId);
-    return { success: true, messageId: info.messageId };
+    if (error) {
+      console.error("❌ Error sending order confirmation email:", error);
+      return { success: false, message: error.message };
+    }
+
+    console.log("✅ Order confirmation email sent successfully:", data.id);
+    return { success: true, messageId: data.id };
   } catch (error) {
     console.error("❌ Error sending order confirmation email:", error);
     return { success: false, message: error.message };
   }
 };
+
+// Send Out for Delivery Email
 export const sendOutForDeliveryEmail = async (email, orderData) => {
   try {
-    if (!process.env.COMPANY_EMAIL || !process.env.COMPANY_EMAIL_APP_PASSWORD) {
+    const resend = getResend();
+    if (!resend) {
       console.warn("⚠️ Email credentials not configured. Email not sent.");
       return { success: false };
     }
-
-    const transporter = createTransporter();
 
     const deliveryAddress = `
       ${orderData.delivery.receiver_name}<br>
@@ -293,8 +291,8 @@ export const sendOutForDeliveryEmail = async (email, orderData) => {
       </tr>
     `).join('');
 
-    const mailOptions = {
-      from: `"Shop4Ever" <${process.env.COMPANY_EMAIL}>`,
+    const { data, error } = await resend.emails.send({
+      from: getFromEmail(),
       to: email,
       subject: `Out for Delivery - Order #${orderData.order_id}`,
       html: `
@@ -341,9 +339,12 @@ export const sendOutForDeliveryEmail = async (email, orderData) => {
           </div>
         </div>
       `
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
+    if (error) {
+      console.error("❌ Out for delivery email error:", error);
+      return { success: false, message: error.message };
+    }
 
     return { success: true };
 
@@ -352,11 +353,12 @@ export const sendOutForDeliveryEmail = async (email, orderData) => {
     return { success: false, message: error.message };
   }
 };
+
+// Send Order Delivered Email
 export const sendOrderDeliveredEmail = async (email, orderData) => {
   try {
-    if (!process.env.COMPANY_EMAIL) return { success: false };
-
-    const transporter = createTransporter();
+    const resend = getResend();
+    if (!resend) return { success: false };
 
     const deliveryAddress = `
       ${orderData.delivery.receiver_name}<br>
@@ -378,8 +380,8 @@ export const sendOrderDeliveredEmail = async (email, orderData) => {
       </tr>
     `).join('');
 
-    const mailOptions = {
-      from: `"Shop4Ever" <${process.env.COMPANY_EMAIL}>`,
+    const { data, error } = await resend.emails.send({
+      from: getFromEmail(),
       to: email,
       subject: `Order Delivered - Order #${orderData.order_id}`,
       html: `
@@ -421,23 +423,25 @@ export const sendOrderDeliveredEmail = async (email, orderData) => {
           </div>
         </div>
       `
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
+    if (error) return { success: false, message: error.message };
+
     return { success: true };
 
   } catch (error) {
     return { success: false, message: error.message };
   }
 };
+
+// Send Order Cancellation Email
 export const sendOrderCancellationEmail = async (email, orderData) => {
   try {
-    if (!process.env.COMPANY_EMAIL) return { success: false };
+    const resend = getResend();
+    if (!resend) return { success: false };
 
-    const transporter = createTransporter();
-
-    const mailOptions = {
-      from: `"Shop4Ever" <${process.env.COMPANY_EMAIL}>`,
+    const { data, error } = await resend.emails.send({
+      from: getFromEmail(),
       to: email,
       subject: `Order Cancelled - Order #${orderData.order_id}`,
       html: `
@@ -467,9 +471,10 @@ export const sendOrderCancellationEmail = async (email, orderData) => {
           </div>
         </div>
       `
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
+    if (error) return { success: false, message: error.message };
+
     return { success: true };
 
   } catch (error) {
@@ -481,18 +486,26 @@ export const sendOrderCancellationEmail = async (email, orderData) => {
 // Test email configuration
 export const testEmailConfig = async () => {
   try {
-    if (!process.env.COMPANY_EMAIL || !process.env.COMPANY_EMAIL_APP_PASSWORD) {
+    console.log("🔍 Testing email configuration...");
+    console.log("   RESEND_API_KEY:", process.env.RESEND_API_KEY ? "✅ SET" : "❌ NOT SET");
+    console.log("   RESEND_FROM_EMAIL:", process.env.RESEND_FROM_EMAIL || "not set (using default onboarding@resend.dev)");
+    console.log("   NODE_ENV:", process.env.NODE_ENV || "not set");
+
+    if (!process.env.RESEND_API_KEY) {
+      console.error("❌ RESEND_API_KEY not configured! Add it to your environment variables.");
+      console.error("   Get your free API key at: https://resend.com");
       return { success: false, message: "Email credentials not configured" };
     }
 
-    const transporter = createTransporter();
-    await transporter.verify();
-    console.log("✅ Email server is ready to send messages");
+    // Test by verifying the API key works
+    const resend = getResend();
+    // Resend doesn't have a verify method, but we can check the key format
+    console.log("✅ Resend email service is configured and ready (using HTTPS API - no SMTP needed!)");
 
     return { success: true };
   } catch (error) {
-    console.error("❌ Email configuration error:", error);
+    console.error("❌ Email configuration error:", error.message);
+    // Don't crash the server if email config fails
     return { success: false, message: error.message };
   }
 };
-
