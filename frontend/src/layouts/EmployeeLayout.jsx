@@ -1,15 +1,11 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import {
-  FaTachometerAlt,
-  FaClipboardList,
-  FaBox,
-  FaUser,
-  FaSignOutAlt,
-} from "react-icons/fa";
-import { motion } from "framer-motion";
+import { FaTachometerAlt, FaClipboardList, FaBox, FaUser, FaSignOutAlt, FaBars, FaTimes } from "react-icons/fa";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const EmployeeLayout = () => {
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -17,82 +13,67 @@ const EmployeeLayout = () => {
     navigate("/login");
   };
 
-  // Dynamic link styles
   const linkClass = ({ isActive }) =>
-    `flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+    `flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
       isActive
-        ? "bg-gradient-to-r from-[#FF8C00] to-[#FF4B91] text-orange-400 border border-orange-500 shadow-md font-semibold"
-        : "text-[#F5F5F5] hover:text-[#FF8C00] hover:bg-[#2E2E2E]"
+        ? "bg-gradient-to-r from-orange-500/20 to-pink-500/20 text-orange-500 border border-[#FF8C00]/30"
+        : "text-gray-400 hover:text-gray-100 hover:bg-white/5"
+    }`;
+
+  const mobileLinkClass = ({ isActive }) =>
+    `flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all ${
+      isActive ? "bg-gradient-to-r from-orange-500/20 to-pink-500/20 text-orange-500 border border-[#FF8C00]/30" : "text-gray-300 hover:bg-white/5"
     }`;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#121212] text-[#F5F5F5]">
-      {/* Top Navbar */}
-      <motion.nav
-        initial={{ y: -40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        className="flex justify-between items-center px-8 py-4 bg-gradient-to-r from-[#2E2E2E] to-[#1C1C1C] shadow-lg border-b border-[#FF8C00]/40"
-      >
-        {/* Logo + Title */}
-        <div
-          className="flex items-center gap-3 cursor-pointer"
-          onClick={() => navigate("/employee")}
-        >
-          <img
-            src="/logooo.png"
-            alt="Shop4Ever Logo"
-            className="w-12 h-12 object-contain rounded-full border border-[#FF8C00]/60 shadow-lg"
-          />
-          <div>
-           <h1 className="text-2xl font-extrabold text-[#FF8C00]">
-    Shop4Ever
-  </h1>
-            <p className="text-sm text-gray-400 -mt-1">Employee Panel</p>
+    <div className="min-h-screen flex flex-col bg-[#0a0a0f] text-[#f0f0f5]">
+      <nav className="sticky top-0 z-40 glass border-b border-white/5">
+        <div className="flex justify-between items-center px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/employee")}>
+            <img src="/logooo.png" alt="Shop4Ever Logo" className="w-10 h-10 object-contain rounded-full border border-[#FF8C00]/40" />
+            <div>
+              <h1 className="text-lg font-extrabold text-orange-500 leading-tight">Shop4Ever</h1>
+              <p className="text-[11px] text-gray-500 -mt-0.5">Employee Panel</p>
+            </div>
           </div>
+
+          <div className="hidden md:flex items-center gap-2">
+            <NavLink to="/employee" end className={linkClass}><FaTachometerAlt size={14} /> Dashboard</NavLink>
+            <NavLink to="/employee/total-orders" className={linkClass}><FaClipboardList size={14} /> Orders</NavLink>
+            <NavLink to="/employee/products" className={linkClass}><FaBox size={14} /> Add Products</NavLink>
+            <NavLink to="/employee/profile" className={linkClass}><FaUser size={14} /> Profile</NavLink>
+            <button onClick={logout} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-gradient-to-r from-orange-500 to-pink-500 text-white hover:opacity-90 transition-opacity">
+              <FaSignOutAlt size={14} /> Logout
+            </button>
+          </div>
+
+          <button className="md:hidden p-2 text-gray-400 hover:text-orange-500" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <FaTimes size={22} /> : <FaBars size={22} />}
+          </button>
         </div>
 
-        {/* Navigation Links */}
-        <div className="flex items-center gap-4 text-sm font-medium">
-          <NavLink to="/employee" end className={linkClass}>
-            <FaTachometerAlt /> Dashboard
-          </NavLink>
-          <NavLink to="/employee/total-orders" className={linkClass}>
-            <FaClipboardList /> Orders
-          </NavLink>
-          <NavLink to="/employee/products" className={linkClass}>
-            <FaBox /> Add Products
-          </NavLink>
-          <NavLink to="/employee/profile" className={linkClass}>
-            <FaUser /> Profile
-          </NavLink>
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden border-t border-white/5 overflow-hidden">
+              <div className="flex flex-col gap-1 p-4">
+                <NavLink to="/employee" end className={mobileLinkClass} onClick={() => setMobileMenuOpen(false)}><FaTachometerAlt /> Dashboard</NavLink>
+                <NavLink to="/employee/total-orders" className={mobileLinkClass} onClick={() => setMobileMenuOpen(false)}><FaClipboardList /> Orders</NavLink>
+                <NavLink to="/employee/products" className={mobileLinkClass} onClick={() => setMobileMenuOpen(false)}><FaBox /> Add Products</NavLink>
+                <NavLink to="/employee/profile" className={mobileLinkClass} onClick={() => setMobileMenuOpen(false)}><FaUser /> Profile</NavLink>
+                <div className="border-t border-white/5 mt-2 pt-2">
+                  <button onClick={logout} className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 w-full text-left"><FaSignOutAlt /> Logout</button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </nav>
 
-          {/* Logout Button */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={logout}
-            className="flex items-center gap-2 bg-[#FF8C00] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#ffa733] shadow-md transition-all"
-          >
-            <FaSignOutAlt /> Logout
-          </motion.button>
-        </div>
-      </motion.nav>
-
-      {/* Main Dashboard Content */}
-      <main className="flex-1 p-8 bg-[#121212]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="bg-[#2E2E2E]/60 border border-[#FF8C00]/20 rounded-2xl p-6 shadow-xl backdrop-blur-sm"
-        >
-          <Outlet />
-        </motion.div>
+      <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className="text-center py-4 text-gray-500 text-sm border-t border-[#2E2E2E]">
+      <footer className="text-center py-5 text-gray-600 text-xs border-t border-white/5">
         © {new Date().getFullYear()} Shop4Ever — Empowering Employees Everywhere 💼
       </footer>
     </div>

@@ -13,6 +13,7 @@ import cartRouter from './routes/cartRoutes.js'
 import orderRouter from './routes/orderRoutes.js'
 import employeeRouter from './routes/employeeRoutes.js'
 import adminRouter from './routes/adminRoutes.js'
+import consumerRouter from './routes/consumerRoutes.js'
 
 // ────────────────────────────────────
 // Environment variable validation
@@ -97,6 +98,7 @@ app.use('/api/cart', cartRouter)
 app.use('/api/order', orderRouter)
 app.use('/api/employee', employeeRouter)
 app.use('/api/admin', adminRouter)
+app.use('/api/consumer', consumerRouter)
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

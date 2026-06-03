@@ -54,8 +54,8 @@ const FilterSidebar = ({
               {/* Header */}
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-2">
-                  <FaFilter className="text-[#FF8C00] text-xl" />
-                  <h3 className="text-2xl font-extrabold text-[#FF8C00] tracking-wide">
+                  <FaFilter className="text-orange-500 text-xl" />
+                  <h3 className="text-2xl font-extrabold text-orange-500 tracking-wide">
                     Filters
                   </h3>
                 </div>
@@ -70,7 +70,7 @@ const FilterSidebar = ({
               {/* Clear All Button */}
               <button
                 onClick={onClearFilters}
-                className="w-full mb-6 px-4 py-2 rounded-xl bg-gradient-to-r from-[#FF8C00]/30 to-[#FF5E00]/30 text-[#FF8C00] font-semibold tracking-wide hover:from-[#FF8C00]/50 hover:to-[#FF5E00]/50 transition-all shadow-lg"
+                className="w-full mb-6 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500/30 to-[#FF5E00]/30 text-orange-500 font-semibold tracking-wide hover:from-orange-500/50 hover:to-[#FF5E00]/50 transition-all shadow-lg"
               >
                 Clear All Filters
               </button>
@@ -78,7 +78,7 @@ const FilterSidebar = ({
               {/* Category Filter */}
               <div className="mb-8">
                 <h4 className="text-lg font-semibold mb-3 pb-2 border-b border-gray-700 flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-[#FF8C00]"></span>
+                  <span className="h-2 w-2 rounded-full bg-orange-500"></span>
                   Category
                 </h4>
                 <div className="flex flex-col gap-3">
@@ -89,7 +89,7 @@ const FilterSidebar = ({
                     >
                       <input
                         type="checkbox"
-                        className="h-5 w-5 rounded bg-gray-700 border-gray-600 text-[#FF8C00] focus:ring-[#FF8C00] accent-[#FF8C00]"
+                        className="h-5 w-5 rounded bg-gray-700 border-gray-600 text-orange-500 focus:ring-[#FF8C00] accent-[#FF8C00]"
                         checked={selectedFilters.categories.includes(category)}
                         onChange={() => handleCategoryChange(category)}
                       />
@@ -101,8 +101,36 @@ const FilterSidebar = ({
                 </div>
               </div>
 
-              {/* No Price Filter (Removed) */}
-              <div className="text-center text-sm text-gray-500 mt-10">
+              {/* Price Range Filter */}
+              <div className="mb-8">
+                <h4 className="text-lg font-semibold mb-3 pb-2 border-b border-gray-700 flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-orange-500"></span>
+                  Price Range
+                </h4>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { label: "Under ₹100", min: 0, max: 100 },
+                    { label: "₹100 - ₹500", min: 100, max: 500 },
+                    { label: "₹500 - ₹1000", min: 500, max: 1000 },
+                    { label: "₹1000 - ₹5000", min: 1000, max: 5000 },
+                    { label: "Above ₹5000", min: 5000, max: 999999 },
+                  ].map((range) => (
+                    <button
+                      key={range.label}
+                      onClick={() => onFilterChange("priceRange", range)}
+                      className={`px-4 py-2.5 rounded-xl text-sm font-medium text-left transition-all border ${
+                        selectedFilters.priceRange?.label === range.label
+                          ? "bg-orange-500/20 text-orange-500 border-[#FF8C00]/40"
+                          : "bg-white/5 text-gray-300 border-white/10 hover:border-white/20"
+                      }`}
+                    >
+                      {range.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="text-center text-sm text-gray-600 mt-10">
                 — End of Filters —
               </div>
             </div>

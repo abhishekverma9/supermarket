@@ -68,8 +68,8 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-6">
-      <h2 className="text-3xl font-bold mb-6 text-center text-[#FF8C00]">Products Dashboard</h2>
+    <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6">
+      <h2 className="text-3xl font-bold mb-6 text-center text-orange-500">Products Dashboard</h2>
 
       {products.length === 0 ? (
         <p className="text-center text-gray-400">No products available</p>
@@ -95,13 +95,13 @@ const Dashboard = () => {
                     <h3 className="text-xl font-semibold mb-1">{p.name}</h3>
                     <p className="text-sm text-gray-400 mb-2">{p.description}</p>
                     <p className="text-sm">
-                      <span className="text-[#FF8C00] font-semibold">Category:</span> {p.category}
+                      <span className="text-orange-500 font-semibold">Category:</span> {p.category}
                     </p>
                     <p className="text-sm">
-                      <span className="text-[#FF8C00] font-semibold">Exp. Date:</span> {formatDate(p.exp_date)}
+                      <span className="text-orange-500 font-semibold">Exp. Date:</span> {formatDate(p.exp_date)}
                     </p>
                     <p className="text-sm">
-                      <span className="text-[#FF8C00] font-semibold">Discount:</span> {p.discount_value}%
+                      <span className="text-orange-500 font-semibold">Discount:</span> {p.discount_value}%
                     </p>
 
                     <div className="mt-3 flex flex-col gap-2">
@@ -139,14 +139,14 @@ const Dashboard = () => {
                     {isEdit ? (
                       <button
                         onClick={() => handleSave(p.product_id)}
-                        className="flex items-center gap-2 bg-[#FF8C00] text-black px-3 py-2 rounded-lg font-semibold hover:bg-[#ffa733] transition"
+                        className="flex items-center gap-2 bg-orange-500 text-white px-3 py-2 rounded-lg font-semibold hover:bg-orange-400 transition"
                       >
                         <FaSave /> Save
                       </button>
                     ) : (
                       <button
                         onClick={() => handleToggleEdit(p.product_id)}
-                        className="flex items-center gap-2 border border-[#FF8C00] text-[#FF8C00] px-3 py-2 rounded-lg font-semibold hover:bg-[#FF8C00] hover:text-black transition"
+                        className="flex items-center gap-2 border border-[#FF8C00] text-orange-500 px-3 py-2 rounded-lg font-semibold hover:bg-orange-500 hover:text-white transition"
                       >
                         <FaEdit /> Edit
                       </button>

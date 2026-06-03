@@ -11,6 +11,7 @@ import ConsumerLayout from './layouts/ConsumerLayout'
 import Dashboard from './pages/consumer/Dashboard'
 import Orders from './pages/consumer/Orders'
 import Cart from './pages/consumer/Cart'
+import ConsumerProfile from './pages/consumer/Profile'
 import { ToastContainer } from 'react-toastify'
 import Checkout from './pages/consumer/Checkout'
 import ProductDetails from './pages/consumer/ProductDetails'
@@ -21,10 +22,11 @@ import OwnerEmployees from './pages/owner/Employees'
 import OwnerProducts from './pages/owner/Products'
 import OwnerOrders from './pages/owner/Orders'
 import Features from './pages/Features'
+import NotFound from './pages/NotFound'
 
 const App = () => {
   return (
-    <div className='min-h-screen bg-[#121212] text-[#F5F5F5]'>
+    <div className='min-h-screen bg-[#0a0a0f] text-[#f0f0f5]'>
       <ToastContainer/>
       <Routes>
         <Route path='/' element={<Home />} />
@@ -58,11 +60,12 @@ const App = () => {
             <Route path="/consumer/orders" element={<Orders />} />
             <Route path="/consumer/cart" element={<Cart />} />
             <Route path="/consumer/checkout" element={<Checkout/>} />
+            <Route path="/consumer/profile" element={<ConsumerProfile />} />
           </Route>
         </Route>
 
         {/* Redirect unknown routes to login */}
-        <Route path="*" element={<LoginPage />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
   )

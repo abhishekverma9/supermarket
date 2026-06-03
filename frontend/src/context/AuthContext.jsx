@@ -15,6 +15,41 @@ export const AuthContextProvider = ({ children }) => {
     const [orders, setOrders] = useState([])
     const [role, setRole] = useState(localStorage.getItem("role") ? localStorage.getItem("role") : "owner");
     const [allOrders, setAllOrders] = useState([])
+    const [consumerProfile, setConsumerProfile] = useState(null)
+
+    // Fetch consumer profile
+    const fetchConsumerProfile = async () => {
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/consumer/profile`, {
+                headers: { token }
+            });
+            if (data.success) {
+                setConsumerProfile(data.user);
+            }
+        } catch (err) {
+            console.error("Error fetching consumer profile:", err);
+        }
+    };
+
+    const updateConsumerProfile = async (profileData) => {
+        try {
+            const { data } = await axios.post(`${backendUrl}/api/consumer/update-profile`, profileData, {
+                headers: { token }
+            });
+            if (data.success) {
+                toast.success(data.message);
+                fetchConsumerProfile();
+                return true;
+            } else {
+                toast.error(data.message);
+                return false;
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || err.message);
+            return false;
+        }
+    };
+
     // Fetch cart items
     const fetchCartItems = async () => {
         try {
@@ -204,6 +239,7 @@ export const AuthContextProvider = ({ children }) => {
         if (token && role === "consumer") {
             fetchCartItems()
             fetchOrders()
+            fetchConsumerProfile()
         }
         if (token && (role === "employee" || role === "owner")) {
             fetchAllOrderForEmp()
@@ -212,7 +248,7 @@ export const AuthContextProvider = ({ children }) => {
     }, [token,role])
 
     const value = {
-        token, setToken,fetchAllProducts, backendUrl, products, setProducts, addToCart, updateCartItem, removeCartItem, checkout, clearCart, cart, fetchCartItems, orders, role, setRole, updateProduct, deleteProduct, formatDate, allOrders
+        token, setToken,fetchAllProducts, backendUrl, products, setProducts, addToCart, updateCartItem, removeCartItem, checkout, clearCart, cart, fetchCartItems, orders, role, setRole, updateProduct, deleteProduct, formatDate, allOrders, consumerProfile, updateConsumerProfile
     }
     return (
         <AuthContext.Provider value={value}>

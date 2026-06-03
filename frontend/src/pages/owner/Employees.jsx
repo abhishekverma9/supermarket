@@ -122,7 +122,7 @@ const OwnerEmployees = () => {
   }, [token, role]);
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-8">
+    <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -130,7 +130,7 @@ const OwnerEmployees = () => {
         transition={{ duration: 0.6 }}
         className="mb-8"
       >
-        <h2 className="text-4xl font-extrabold text-[#FF8C00]">
+        <h2 className="text-4xl font-extrabold text-orange-500">
   Manage Employees
 </h2>
         <p className="text-gray-400 mt-2">Add, edit, or remove employee records</p>
@@ -143,7 +143,7 @@ const OwnerEmployees = () => {
         transition={{ delay: 0.3 }}
         className="p-6 mb-10 rounded-2xl bg-[#2E2E2E]/70 border border-[#FF8C00]/20 shadow-xl backdrop-blur-sm"
       >
-        <h3 className="text-xl font-semibold flex items-center gap-2 text-[#FF8C00] mb-4">
+        <h3 className="text-xl font-semibold flex items-center gap-2 text-orange-500 mb-4">
           <FaUserPlus /> Add New Employee
         </h3>
         <form onSubmit={handleSubmit} className="flex flex-wrap gap-4">
@@ -189,10 +189,10 @@ const OwnerEmployees = () => {
 
           <button
             type="submit"
-            className={`px-5 py-2 rounded-lg text-black font-semibold transition-transform hover:scale-105 ${
+            className={`px-5 py-2 rounded-lg text-white font-semibold transition-transform hover:scale-105 ${
               isSubmitting
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-[#FF8C00] hover:bg-[#ffa733]"
+                : "bg-orange-500 hover:bg-orange-400"
             }`}
             disabled={isSubmitting}
           >
@@ -209,7 +209,7 @@ const OwnerEmployees = () => {
         className="overflow-x-auto bg-[#2E2E2E]/70 border border-[#FF8C00]/20 rounded-2xl shadow-lg"
       >
         <table className="w-full text-sm">
-          <thead className="bg-[#1a1a1a] text-[#FF8C00] uppercase tracking-wide">
+          <thead className="bg-[#1a1a1a] text-orange-500 uppercase tracking-wide">
             <tr>
               <th className="px-4 py-3 text-left">Profile</th>
               <th className="px-4 py-3 text-left">Emp ID</th>
@@ -314,7 +314,7 @@ const OwnerEmployees = () => {
         className="mt-8 p-6 bg-[#2E2E2E]/70 border border-[#FF8C00]/20 rounded-2xl shadow-xl flex justify-between items-center"
       >
         <h3 className="text-xl font-semibold text-gray-300">Total Salary Paid</h3>
-        <span className="text-2xl font-bold text-[#FF8C00]">
+        <span className="text-2xl font-bold text-orange-500">
           ₹{totalSalary.toFixed(2)}
         </span>
       </motion.div>

@@ -92,20 +92,20 @@ const ProductDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
-        <p className="text-gray-400 text-lg">Loading product details...</p>
+      <div className="min-h-screen text-[#f0f0f5] flex items-center justify-center p-4">
+        <div className="skeleton w-full max-w-4xl h-[400px] rounded-2xl" />
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+      <div className="min-h-screen text-[#f0f0f5] flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-400 text-lg mb-4">Product not found</p>
           <button
             onClick={() => navigate("/consumer")}
-            className="px-6 py-2 bg-[#FF8C00] text-black rounded-lg hover:bg-[#ffa733] transition-colors"
+            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity"
           >
             Go Back
           </button>
@@ -128,7 +128,7 @@ const ProductDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-4 sm:p-6 md:p-12">
+    <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6 lg:p-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -138,7 +138,7 @@ const ProductDetails = () => {
         {/* Back Button */}
         <button
           onClick={() => navigate("/consumer")}
-          className="mb-4 sm:mb-6 flex items-center gap-2 text-sm sm:text-base text-gray-400 hover:text-[#FF8C00] transition-colors"
+          className="mb-4 sm:mb-6 flex items-center gap-2 text-sm sm:text-base text-gray-400 hover:text-orange-500 transition-colors"
         >
           <FaArrowLeft />
           <span>Back to Products</span>
@@ -149,7 +149,7 @@ const ProductDetails = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="relative bg-[#1e1e1e] rounded-2xl overflow-hidden border border-[#FF8C00]/30"
+            className="relative glass rounded-2xl overflow-hidden border border-white/5"
           >
             <img
               src={imageUrl || product.product_image || "https://via.placeholder.com/600"}
@@ -157,7 +157,7 @@ const ProductDetails = () => {
               className="w-full h-[300px] sm:h-[400px] lg:h-[500px] object-cover"
             />
             {discount > 0 && (
-              <span className="absolute top-4 right-4 bg-[#FF8C00] text-black text-sm font-bold px-3 py-1 rounded-full">
+              <span className="absolute top-4 right-4 bg-orange-500 text-white text-sm font-bold px-3 py-1 rounded-full">
                 {discount.toFixed(0)}% OFF
               </span>
             )}
@@ -167,7 +167,7 @@ const ProductDetails = () => {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-[#2E2E2E]/70 backdrop-blur-xl p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30"
+            className="glass p-6 md:p-8 rounded-2xl shadow-xl"
           >
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 text-gray-100">{product.name}</h1>
 
@@ -186,7 +186,7 @@ const ProductDetails = () => {
             <div className="mb-4 sm:mb-6">
               {discount > 0 ? (
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#FF8C00]">
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-orange-500">
                     ₹{finalPrice.toFixed(2)}
                   </span>
                   <span className="text-lg sm:text-xl md:text-2xl text-gray-500 line-through">
@@ -197,7 +197,7 @@ const ProductDetails = () => {
                   </span>
                 </div>
               ) : (
-                <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#FF8C00]">
+                <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-orange-500">
                   ₹{price.toFixed(2)}
                 </span>
               )}
@@ -220,7 +220,7 @@ const ProductDetails = () => {
 
             {/* Description */}
             <div className="mb-6">
-              <h3 className="text-xl font-semibold mb-2 text-[#FF8C00]">Description</h3>
+              <h3 className="text-xl font-semibold mb-2 text-orange-500">Description</h3>
               <p className="text-gray-300 leading-relaxed">{product.description}</p>
             </div>
 
@@ -246,7 +246,7 @@ const ProductDetails = () => {
             <motion.button
               onClick={() => addToCart(product.product_id, 1)}
               disabled={product.stock_quantity === 0}
-              className="w-full px-6 py-4 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold text-lg shadow-md flex items-center justify-center gap-2 transition-colors disabled:bg-gray-600 disabled:hover:bg-gray-600 disabled:cursor-not-allowed"
+              className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold text-lg shadow-lg flex items-center justify-center gap-2 transition-all hover:shadow-[0_0_20px_rgba(255,140,0,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
               whileTap={{ scale: 0.95 }}
             >
               <FaShoppingCart />
@@ -260,15 +260,15 @@ const ProductDetails = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-[#2E2E2E]/70 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30"
+          className="glass p-8 rounded-2xl mt-8"
         >
-          <h2 className="text-3xl font-bold mb-6 text-[#FF8C00]">Ratings & Reviews</h2>
+          <h2 className="text-3xl font-bold mb-6 text-gradient">Ratings & Reviews</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             {/* Overall Rating */}
-            <div className="bg-[#1e1e1e] p-6 rounded-xl border border-[#FF8C00]/20">
+            <div className="bg-white/5 p-6 rounded-xl border border-white/5">
               <div className="text-center mb-4">
-                <div className="text-5xl font-bold text-[#FF8C00] mb-2">
+                <div className="text-5xl font-bold text-orange-500 mb-2">
                   {ratingData.averageRating.toFixed(1)}
                 </div>
                 <div className="flex justify-center mb-2">
@@ -279,7 +279,7 @@ const ProductDetails = () => {
             </div>
 
             {/* Rating Breakdown */}
-            <div className="bg-[#1e1e1e] p-6 rounded-xl border border-[#FF8C00]/20">
+            <div className="bg-white/5 p-6 rounded-xl border border-white/5">
               <h3 className="font-semibold mb-4 text-gray-200">Rating Breakdown</h3>
               <div className="space-y-3">
                 {ratingData.ratings.map((rating) => (
@@ -290,7 +290,7 @@ const ProductDetails = () => {
                     </div>
                     <div className="flex-1 bg-gray-700 rounded-full h-2">
                       <div
-                        className="bg-[#FF8C00] h-2 rounded-full"
+                        className="bg-orange-500 h-2 rounded-full"
                         style={{ width: `${rating.percentage}%` }}
                       />
                     </div>
@@ -310,7 +310,7 @@ const ProductDetails = () => {
               {ratingData.reviews.map((review) => (
                 <div
                   key={review.id}
-                  className="bg-[#1e1e1e] p-6 rounded-xl border border-[#FF8C00]/20"
+                  className="bg-white/5 p-6 rounded-xl border border-white/5"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>

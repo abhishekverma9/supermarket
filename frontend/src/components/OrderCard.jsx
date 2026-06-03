@@ -111,8 +111,8 @@ const OrderCard = ({ order }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="p-2 sm:p-3 rounded-xl bg-[#FF8C00]/10 border border-[#FF8C00]/30">
-            <FaShoppingBag className="text-[#FF8C00]" size={20} />
+          <div className="p-2 sm:p-3 rounded-xl bg-orange-500/10 border border-[#FF8C00]/30">
+            <FaShoppingBag className="text-orange-500" size={20} />
           </div>
           <div>
             <h3 className="text-xl sm:text-2xl font-bold text-gray-100">
@@ -162,7 +162,7 @@ const OrderCard = ({ order }) => {
       {/* Customer Info */}
       <div className="mb-4 sm:mb-6 bg-[#1e1e1e] p-3 sm:p-4 rounded-xl border border-[#FF8C00]/20">
         <h4 className="font-semibold text-sm sm:text-base text-gray-200 mb-2 sm:mb-3 flex items-center gap-2">
-          <FaUser className="text-[#FF8C00]" />
+          <FaUser className="text-orange-500" />
           Customer Information
         </h4>
         <div className="space-y-1 text-xs sm:text-sm">
@@ -183,7 +183,7 @@ const OrderCard = ({ order }) => {
       {delivery && Object.keys(delivery).length > 0 && (
         <div className="mb-4 sm:mb-6 bg-[#1e1e1e] p-3 sm:p-4 rounded-xl border border-[#FF8C00]/20">
           <h4 className="font-semibold text-sm sm:text-base text-gray-200 mb-2 sm:mb-3 flex items-center gap-2">
-            <FaMapMarkerAlt className="text-[#FF8C00]" />
+            <FaMapMarkerAlt className="text-orange-500" />
             Delivery Address
           </h4>
           <div className="space-y-1 text-xs sm:text-sm text-gray-300">
@@ -209,14 +209,14 @@ const OrderCard = ({ order }) => {
       {/* Order Items - Fixed height with scroll */}
       <div className="mb-4 sm:mb-6 bg-[#1e1e1e] p-3 sm:p-4 rounded-xl border border-[#FF8C00]/20 flex-1 flex flex-col min-h-[150px] sm:min-h-[200px]">
         <h4 className="font-semibold text-sm sm:text-base text-gray-200 mb-2 sm:mb-3 flex items-center gap-2">
-          <FaBox className="text-[#FF8C00]" />
+          <FaBox className="text-orange-500" />
           Order Items ({order.items?.length || 0})
         </h4>
         <div className="space-y-2 flex-1 overflow-y-auto max-h-[200px] sm:max-h-[250px] pr-2 custom-scrollbar">
           {order.items?.map((item, idx) => (
             <div
               key={idx}
-              className="flex justify-between items-center p-2 bg-[#121212] rounded-lg"
+              className="flex justify-between items-center p-2 bg-white/5 rounded-lg border border-white/5"
             >
               <div>
                 <p className="text-gray-100 font-medium">{item.product_name}</p>
@@ -224,7 +224,7 @@ const OrderCard = ({ order }) => {
                   Quantity: {item.quantity} × ₹{Number(item.price).toFixed(2)}
                 </p>
               </div>
-              <p className="text-[#FF8C00] font-semibold">
+              <p className="text-orange-500 font-semibold">
                 ₹{(item.quantity * Number(item.price)).toFixed(2)}
               </p>
             </div>
@@ -235,7 +235,7 @@ const OrderCard = ({ order }) => {
       {/* Total Amount - Fixed at bottom */}
       <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-[#FF8C00]/20 mt-auto">
         <span className="text-gray-300 font-semibold text-base sm:text-lg">Total Amount:</span>
-        <span className="text-xl sm:text-2xl font-bold text-[#FF8C00] flex items-center gap-1">
+        <span className="text-xl sm:text-2xl font-bold text-orange-500 flex items-center gap-1">
           <FaRupeeSign size={18} />
           {Number(order.total_amount).toFixed(2)}
         </span>
