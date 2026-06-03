@@ -15,7 +15,7 @@ const getAllProducts = async (req, res) => {
     `);
 
     if (products.length === 0) {
-      return res.json({ success: false, message: "No products found" });
+      return res.json({ success: true, message: "No products found", count: 0, products: [] });
     }
 
     const productsWithFinalPrice = products.map(p => ({
@@ -28,7 +28,7 @@ const getAllProducts = async (req, res) => {
     res.json({ success: true, count: productsWithFinalPrice.length, products: productsWithFinalPrice });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch products" });
   }
 };
 
@@ -49,7 +49,7 @@ const getProductById = async (req, res) => {
     `, [id]);
 
     if (products.length === 0) {
-      return res.json({ success: false, message: "Product not found" });
+      return res.status(404).json({ success: false, message: "Product not found" });
     }
     const product = products[0];
     const final_price = product.discount_value
@@ -65,14 +65,14 @@ const getProductById = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch product" });
   }
 };
 const addProduct = async (req, res) => {
   try {
     const { name, description, price, category, stock_quantity, exp_date } = req.body;
     if (!name || !price || !category || !stock_quantity) {
-      return res.json({ success: false, message: "Missing required fields" });
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
     let productImageUrl = null;
     if (req.file) {
@@ -91,7 +91,7 @@ const addProduct = async (req, res) => {
     );
     const product_id = result.insertId;
     // Employee cannot add discount, so skip Product_Discount entirely
-    res.json({
+    res.status(201).json({
       success: true,
       message: "Product added successfully",
       product_id,
@@ -99,7 +99,7 @@ const addProduct = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to add product" });
   }
 };
 
@@ -142,7 +142,7 @@ const updateProduct = async (req, res) => {
     res.json({ success: true, message: "Product updated successfully" });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to update product" });
   }
 };
 const deleteProduct = async (req, res) => {
@@ -153,7 +153,7 @@ const deleteProduct = async (req, res) => {
       [product_id]
     );
     if (existingProducts.length === 0) {
-      return res.json({ success: false, message: "Product not found" });
+      return res.status(404).json({ success: false, message: "Product not found" });
     }
     const product = existingProducts[0];
     // Delete image from ImageKit if exists
@@ -177,7 +177,7 @@ const deleteProduct = async (req, res) => {
     res.json({ success: true, message: "Product deleted successfully", product_id: product_id });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to delete product" });
   }
 };
 

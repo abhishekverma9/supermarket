@@ -8,12 +8,12 @@ const getProfile = async (req, res) => {
     const [rows] = await db().query("SELECT consumer_id, first_name, last_name, email, phone, loyalty_points, house_no, street, building, profile_photo FROM Consumers WHERE consumer_id = ?", [userId]);
 
     if (rows.length === 0) {
-      return res.json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
     res.json({ success: true, user: rows[0] });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch profile" });
   }
 };
 
@@ -25,7 +25,7 @@ const updateProfile = async (req, res) => {
 
     const [existing] = await db().query("SELECT * FROM Consumers WHERE consumer_id = ?", [userId]);
     if (existing.length === 0) {
-      return res.json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     let profilePhotoUrl = existing[0].profile_photo;
@@ -53,7 +53,7 @@ const updateProfile = async (req, res) => {
     res.json({success: true,message: "Profile updated successfully",profile_photo: profilePhotoUrl})
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to update profile" });
   }
 };
 

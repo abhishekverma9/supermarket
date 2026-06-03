@@ -88,7 +88,7 @@ export const AuthContextProvider = ({ children }) => {
     // Clear entire cart
     const clearCart = async () => {
         try {
-            const { data } = await axios.post(`${backendUrl}/api/cart/clear`, {
+            const { data } = await axios.post(`${backendUrl}/api/cart/clear`, {}, {
                 headers: { token },
             });
             if (data.success) {

@@ -20,7 +20,7 @@ const getAllEmployees = async (req, res) => {
         res.json({ success: true, employees: rows });
     } catch (error) {
         console.error(error);
-        res.json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: "Failed to fetch employees" });
     }
 };
 const deleteEmployee = async (req, res) => {
@@ -28,13 +28,13 @@ const deleteEmployee = async (req, res) => {
         const { employee_id } = req.params;
         const [rows] = await db().query("SELECT * FROM Employee WHERE employee_id = ?", [employee_id]);
         if (!rows.length) {
-            return res.json({ success: false, message: "Employee not found" });
+            return res.status(404).json({ success: false, message: "Employee not found" });
         }
         await db().query("DELETE FROM Employee WHERE employee_id = ?", [employee_id]);
         res.json({ success: true, message: "Employee deleted successfully" });
     } catch (error) {
         console.error(error);
-        res.json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: "Failed to delete employee" });
     }
 }
 
@@ -53,13 +53,13 @@ const addEmployee = async (req, res) => {
 
     // Validation
     if (!first_name || !last_name || !email || !phone || !salary || !password || !role) {
-      return res.json({ success: false, message: "Missing required fields" });
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
     // Check if email already exists
     const [existing] = await db().query("SELECT * FROM Employee WHERE email = ?", [email]);
     if (existing.length) {
-      return res.json({ success: false, message: "Email already exists" });
+      return res.status(409).json({ success: false, message: "Email already exists" });
     }
 
     // Hash password before inserting
@@ -94,14 +94,14 @@ const addEmployee = async (req, res) => {
       ]
     );
 
-    res.json({
+    res.status(201).json({
       success: true,
       message: "Employee added successfully",
       employee_id: result.insertId,
     });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to add employee" });
   }
 };
 
@@ -109,7 +109,7 @@ const updateEmployee = async (req, res) => {
     const { employee_id } = req.params;
     const { manager_id, salary } = req.body;
     if (!manager_id || !salary) {
-        return res.json({ success: false, message: "Manager ID and Salary are required" });
+        return res.status(400).json({ success: false, message: "Manager ID and Salary are required" });
     }
     try {
         // Update employee in DB
@@ -120,12 +120,12 @@ const updateEmployee = async (req, res) => {
     `;
         const [result] = await db().execute(query, [manager_id, salary, employee_id]);
         if (result.affectedRows === 0) {
-            return res.json({ success: false, message: "Employee not found" });
+            return res.status(404).json({ success: false, message: "Employee not found" });
         }
         res.json({ success: true, message: "Employee updated successfully" });
     } catch (error) {
         console.error(error);
-        res.json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: "Failed to update employee" });
     }
 }
 const updateDiscount = async (req, res) => {
@@ -133,7 +133,7 @@ const updateDiscount = async (req, res) => {
         const { product_Id } = req.params;
         const { value, description } = req.body;
         if (!value || !description) {
-            return res.json({
+            return res.status(400).json({
                 success: false,
                 message: "Both value and description are required",
             });
@@ -154,7 +154,7 @@ const updateDiscount = async (req, res) => {
             );
 
             if (result.affectedRows === 0) {
-                return res.json({
+                return res.status(404).json({
                     success: false,
                     message: "Discount not found",
                 });
@@ -174,7 +174,7 @@ const updateDiscount = async (req, res) => {
                 `INSERT INTO Product_Discount (product_id, discount_id) VALUES (?, ?)`,
                 [product_Id, newDiscountId]
             );
-            return res.json({
+            return res.status(201).json({
                 success: true,
                 message: "New discount created and linked to product",
                 discountId: newDiscountId,
@@ -182,14 +182,14 @@ const updateDiscount = async (req, res) => {
         }
     } catch (error) {
         console.error(error);
-        res.json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: "Failed to update discount" });
     }
 }
 const getDashboardStats = async (req, res) => {
   try {
     const adminId = req.userId
     if(!adminId){
-        return res.json({success:false,message:"Not Authorized"})
+        return res.status(401).json({success:false,message:"Not Authorized"})
     }
     const [totalOrders] = await db().query("SELECT COUNT(*) AS count FROM Orders WHERE status != 'Cancelled'");
     const [pendingOrders] = await db().query("SELECT COUNT(*) AS count FROM Orders WHERE status = 'Pending'");
@@ -215,7 +215,7 @@ const getDashboardStats = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch dashboard stats" });
   }
 };
 

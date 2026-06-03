@@ -12,10 +12,14 @@ const addToCart = async (req, res) => {
     }
     const qty = quantity || 1;
 
-    // Check if product exists
+    // Check if product exists and has stock
     const [productRows] = await db().query("SELECT * FROM Product WHERE product_id = ?", [product_id]);
     if (productRows.length === 0) {
       return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    if (productRows[0].stock_quantity < qty) {
+      return res.status(400).json({ success: false, message: "Insufficient stock available" });
     }
 
     // Check if already in cart
@@ -41,7 +45,7 @@ const addToCart = async (req, res) => {
     res.json({ success: true, message: "Product added to cart" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to add item to cart" });
   }
 };
 
@@ -71,7 +75,7 @@ const getCartItems = async (req, res) => {
     res.json({ success: true, cart: cartWithFinalPrice, count: cartWithFinalPrice.length });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch cart items" });
   }
 };
 
@@ -93,7 +97,7 @@ const updateCartItem = async (req, res) => {
     res.json({ success: true, message: "Cart item updated successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to update cart item" });
   }
 };
 
@@ -103,12 +107,16 @@ const removeCartItem = async (req, res) => {
     const consumerId = req.userId;
     const { cart_id } = req.body;
 
+    if (!cart_id) {
+      return res.status(400).json({ success: false, message: "Cart ID is required" });
+    }
+
     await db().query("DELETE FROM Cart WHERE cart_id=? AND consumer_id=?", [cart_id, consumerId]);
 
     res.json({ success: true, message: "Cart item removed successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to remove cart item" });
   }
 };
 
@@ -121,9 +129,13 @@ const clearCart = async (req, res) => {
     res.json({ success: true, message: "Cart cleared successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to clear cart" });
   }
 };
+
+// ────────────────────────────────────
+// Checkout — with DB transaction + stock validation
+// ────────────────────────────────────
 const checkout = async (req, res) => {
   const consumerId = req.userId;
   const {
@@ -138,10 +150,22 @@ const checkout = async (req, res) => {
     delivery_instructions
   } = req.body;
 
+  // Validate required delivery fields
+  if (!receiver_name || !phone || !city || !state || !pincode) {
+    return res.status(400).json({ success: false, message: "Missing required delivery details" });
+  }
+
+  // Get a dedicated connection for the transaction
+  const connection = await db().getConnection();
+
   try {
-    // 1️⃣ Fetch cart items
-    const [cartItems] = await db().query(`
-      SELECT c.product_id, c.quantity, p.price, d.value AS discount_value
+    // ─── START TRANSACTION ───
+    await connection.beginTransaction();
+
+    // 1️⃣ Fetch cart items with stock info
+    const [cartItems] = await connection.query(`
+      SELECT c.product_id, c.quantity, p.price, p.stock_quantity, p.name,
+             d.value AS discount_value
       FROM Cart c
       JOIN Product p ON c.product_id = p.product_id
       LEFT JOIN Product_Discount pd ON p.product_id = pd.product_id
@@ -150,10 +174,34 @@ const checkout = async (req, res) => {
     `, [consumerId]);
 
     if (cartItems.length === 0) {
+      await connection.rollback();
+      connection.release();
       return res.status(400).json({ success: false, message: "Cart is empty" });
     }
 
-    // 2️⃣ Calculate total amount & prepare order items
+    // 2️⃣ Validate stock for ALL items before proceeding
+    const outOfStockItems = [];
+    for (const item of cartItems) {
+      if (item.stock_quantity < item.quantity) {
+        outOfStockItems.push({
+          name: item.name,
+          requested: item.quantity,
+          available: item.stock_quantity,
+        });
+      }
+    }
+
+    if (outOfStockItems.length > 0) {
+      await connection.rollback();
+      connection.release();
+      return res.status(400).json({
+        success: false,
+        message: "Some items are out of stock",
+        outOfStockItems,
+      });
+    }
+
+    // 3️⃣ Calculate total amount & prepare order items
     let totalAmount = 0;
     const calculatedItems = cartItems.map(item => {
       const finalPrice = item.discount_value
@@ -169,87 +217,109 @@ const checkout = async (req, res) => {
       };
     });
 
-    // 3️⃣ Create order
-    const [orderResult] = await db().query(
+    // 4️⃣ Create order
+    const [orderResult] = await connection.query(
       `INSERT INTO Orders (consumer_id, total_amount, status) VALUES (?, ?, ?)`,
       [consumerId, totalAmount, "Pending"]
     );
     const orderId = orderResult.insertId;
 
-    // 4️⃣ Insert order items
+    // 5️⃣ Insert order items + decrement stock (atomically)
     for (const item of calculatedItems) {
-      await db().query(
+      await connection.query(
         `INSERT INTO Order_Items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)`,
         [orderId, item.product_id, item.quantity, item.price]
       );
+
+      // Decrement stock — the WHERE clause ensures we don't go negative
+      const [stockResult] = await connection.query(
+        `UPDATE Product SET stock_quantity = stock_quantity - ? WHERE product_id = ? AND stock_quantity >= ?`,
+        [item.quantity, item.product_id, item.quantity]
+      );
+
+      if (stockResult.affectedRows === 0) {
+        // Race condition: stock was bought by someone else between check and update
+        await connection.rollback();
+        connection.release();
+        return res.status(409).json({
+          success: false,
+          message: `Product is no longer available in the requested quantity. Please refresh and try again.`,
+        });
+      }
     }
 
-    // 5️⃣ Insert delivery address
-    await db().query(
+    // 6️⃣ Insert delivery address
+    await connection.query(
       `INSERT INTO delivery_address (order_id, receiver_name, phone, house_no, street, building, city, state, pincode, delivery_instructions)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [orderId, receiver_name, phone, house_no, street, building, city, state, pincode, delivery_instructions]
     );
 
-    // 6️⃣ Clear cart
-    await db().query(`DELETE FROM Cart WHERE consumer_id = ?`, [consumerId]);
+    // 7️⃣ Clear cart
+    await connection.query(`DELETE FROM Cart WHERE consumer_id = ?`, [consumerId]);
 
-    // 7️⃣ Fetch order header details
-    const [orderDetails] = await db().query(`
-      SELECT o.order_id, o.total_amount, o.status, o.order_date,
-             da.receiver_name, da.phone, da.house_no, da.street, da.building,
-             da.city, da.state, da.pincode, da.delivery_instructions
-      FROM Orders o
-      JOIN delivery_address da ON o.order_id = da.order_id
-      WHERE o.order_id = ?
-    `, [orderId]);
+    // ─── COMMIT TRANSACTION ───
+    await connection.commit();
+    connection.release();
 
-    // 8️⃣ Fetch order items with product details
-    const [dbOrderItems] = await db().query(`
-      SELECT oi.product_id, p.name, oi.quantity, oi.price, p.image
-      FROM Order_Items oi
-      JOIN Product p ON oi.product_id = p.product_id
-      WHERE oi.order_id = ?
-    `, [orderId]);
+    // 8️⃣ Send confirmation email (outside transaction — non-critical)
+    try {
+      const [orderDetails] = await db().query(`
+        SELECT o.order_id, o.total_amount, o.status, o.order_date,
+               da.receiver_name, da.phone, da.house_no, da.street, da.building,
+               da.city, da.state, da.pincode, da.delivery_instructions
+        FROM Orders o
+        JOIN delivery_address da ON o.order_id = da.order_id
+        WHERE o.order_id = ?
+      `, [orderId]);
 
-    // 9️⃣ Get consumer email
-    const [consumer] = await db().query(
-      "SELECT email FROM Consumers WHERE consumer_id = ?",
-      [consumerId]
-    );
+      const [dbOrderItems] = await db().query(`
+        SELECT oi.product_id, p.name, oi.quantity, oi.price, p.image
+        FROM Order_Items oi
+        JOIN Product p ON oi.product_id = p.product_id
+        WHERE oi.order_id = ?
+      `, [orderId]);
 
-    // 🔟 Send confirmation email
-    if (consumer.length > 0 && consumer[0].email) {
-      const orderData = {
-        order_id: orderId,
-        total_amount: totalAmount,
-        status: "Pending",
-        order_date: orderDetails[0]?.order_date || new Date(),
-        items: dbOrderItems,
-        delivery: {
-          receiver_name,
-          phone,
-          house_no,
-          street,
-          building: building || "",
-          city,
-          state,
-          pincode,
-          delivery_instructions: delivery_instructions || "",
-        },
-      };
-
-      const emailResult = await sendOrderConfirmationEmail(
-        consumer[0].email,
-        orderData
+      const [consumer] = await db().query(
+        "SELECT email FROM Consumers WHERE consumer_id = ?",
+        [consumerId]
       );
 
-      if (!emailResult.success) {
-        console.warn("⚠️ Order placed but email sending failed:", emailResult.message);
+      if (consumer.length > 0 && consumer[0].email) {
+        const orderData = {
+          order_id: orderId,
+          total_amount: totalAmount,
+          status: "Pending",
+          order_date: orderDetails[0]?.order_date || new Date(),
+          items: dbOrderItems,
+          delivery: {
+            receiver_name,
+            phone,
+            house_no,
+            street,
+            building: building || "",
+            city,
+            state,
+            pincode,
+            delivery_instructions: delivery_instructions || "",
+          },
+        };
+
+        const emailResult = await sendOrderConfirmationEmail(
+          consumer[0].email,
+          orderData
+        );
+
+        if (!emailResult.success) {
+          console.warn("⚠️ Order placed but email sending failed:", emailResult.message);
+        }
       }
+    } catch (emailError) {
+      // Email failure should never fail the order
+      console.warn("⚠️ Email sending failed (order was placed successfully):", emailError.message);
     }
 
-    res.json({
+    res.status(201).json({
       success: true,
       message: "Order placed successfully",
       order_id: orderId,
@@ -257,9 +327,17 @@ const checkout = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: error.message });
+    // Rollback on any error
+    try {
+      await connection.rollback();
+    } catch (rollbackError) {
+      console.error("Rollback failed:", rollbackError.message);
+    }
+    connection.release();
+
+    console.error("Checkout error:", error);
+    res.status(500).json({ success: false, message: "Checkout failed. Please try again." });
   }
 };
 
-export { addToCart, getCartItems, updateCartItem, removeCartItem, clearCart,checkout };
+export { addToCart, getCartItems, updateCartItem, removeCartItem, clearCart, checkout };
