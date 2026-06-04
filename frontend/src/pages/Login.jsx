@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
 import { FaGoogle, FaFacebook, FaApple, FaEye, FaEyeSlash } from "react-icons/fa";
+import { GoogleLogin } from '@react-oauth/google';
 
 const LoginPage = () => {
   const [mode, setMode] = useState("login");
@@ -32,13 +33,34 @@ const LoginPage = () => {
   const [authOtpTimer, setAuthOtpTimer] = useState(60);
   const [canResendAuthOtp, setCanResendAuthOtp] = useState(false);
   const authTimerRef = useRef(null);
+  const [selectedRole, setSelectedRole] = useState("owner");
   
   const timerRef = useRef(null);
   const navigate = useNavigate();
-  const { token, setToken, backendUrl, role, setRole } = useContext(AuthContext);
+  const { token, setToken, backendUrl, setRole } = useContext(AuthContext);
 
   const handleSocialClick = () => {
     toast.error("Something went wrong with the social sign-in provider. Please try logging in with email instead.");
+  };
+
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/auth/google`, {
+        token: credentialResponse.credential,
+        role: selectedRole,
+      });
+
+      if (data.success) {
+        setToken(data.token);
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", selectedRole);
+        setRole(selectedRole);
+        toast.success(data.message || "Login successful!");
+        navigate(`/${selectedRole}`);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Google Sign-In failed");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -70,7 +92,7 @@ const LoginPage = () => {
         const { data } = await axios.post(`${backendUrl}/api/auth/send-login-otp`, {
           email,
           password,
-          role,
+          role: selectedRole,
         });
         if (data.success) {
           toast.success(data.message || "OTP sent to your email");
@@ -104,6 +126,7 @@ const LoginPage = () => {
           setToken(data.token);
           localStorage.setItem("token", data.token);
           localStorage.setItem("role", "consumer");
+          setRole("consumer");
           toast.success("Account created successfully!");
           navigate("/consumer");
         } else {
@@ -117,9 +140,10 @@ const LoginPage = () => {
         if (data.success) {
           setToken(data.token);
           localStorage.setItem("token", data.token);
-          localStorage.setItem("role", role);
+          localStorage.setItem("role", selectedRole);
+          setRole(selectedRole);
           toast.success("Login successful!");
-          navigate(`/${role}`);
+          navigate(`/${selectedRole}`);
         } else {
           toast.error(data.message);
         }
@@ -155,7 +179,7 @@ const LoginPage = () => {
         const { data } = await axios.post(`${backendUrl}/api/auth/send-login-otp`, {
           email,
           password,
-          role,
+          role: selectedRole,
         });
         if (data.success) {
           toast.success("OTP resent to your email");
@@ -351,13 +375,13 @@ const LoginPage = () => {
                 key={r}
                 type="button"
                 onClick={() => {
-                  setRole(r);
+                  setSelectedRole(r);
                   setMode(r === "consumer" ? mode : "login");
                   setAuthStep("form");
                   setAuthOtp("");
                 }}
                 className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
-                  role === r
+                  selectedRole === r
                     ? "bg-orange-500 text-white shadow-md"
                     : "bg-[#1e1e1e] text-gray-300 hover:bg-[#2e2e2e]"
                 }`}
@@ -429,7 +453,7 @@ const LoginPage = () => {
             /* Form Step */
             <>
               <form className="space-y-3" onSubmit={handleSubmit}>
-                {role === "consumer" && mode === "signup" && (
+                {selectedRole === "consumer" && mode === "signup" && (
                   <>
                     <input
                       value={firstName}
@@ -514,13 +538,13 @@ const LoginPage = () => {
                 >
                   {mode === "signup"
                     ? "Sign Up as Consumer"
-                    : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
+                    : `Login as ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}`}
                 </button>
               </form>
 
               {/* Social Logins */}
               <div className="mt-5">
-                <div className="relative flex items-center justify-center my-3">
+                <div className="relative flex items-center justify-center my-3 mb-5">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-600/40"></div>
                   </div>
@@ -529,35 +553,23 @@ const LoginPage = () => {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mt-3">
-                  <button
-                    type="button"
-                    onClick={handleSocialClick}
-                    className="flex justify-center items-center py-2.5 rounded-xl bg-[#1e1e1e] border border-gray-600/40 hover:bg-red-500/10 hover:border-red-500/50 transition-colors group cursor-pointer"
-                  >
-                    <FaGoogle className="text-gray-400 group-hover:text-red-500 text-lg" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSocialClick}
-                    className="flex justify-center items-center py-2.5 rounded-xl bg-[#1e1e1e] border border-gray-600/40 hover:bg-blue-600/10 hover:border-blue-600/50 transition-colors group cursor-pointer"
-                  >
-                    <FaFacebook className="text-gray-400 group-hover:text-blue-600 text-lg" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSocialClick}
-                    className="flex justify-center items-center py-2.5 rounded-xl bg-[#1e1e1e] border border-gray-600/40 hover:bg-white/10 hover:border-white transition-colors group cursor-pointer"
-                  >
-                    <FaApple className="text-gray-400 group-hover:text-white text-lg" />
-                  </button>
+                <div className="flex justify-center w-full">
+                  <GoogleLogin
+                    onSuccess={handleGoogleLoginSuccess}
+                    onError={() => {
+                      toast.error("Google Sign-In was unsuccessful. Try again.");
+                    }}
+                    theme="filled_black"
+                    size="large"
+                    shape="pill"
+                  />
                 </div>
               </div>
             </>
           )}
 
           {/* Toggle Mode */}
-          {role === "consumer" && authStep === "form" && (
+          {selectedRole === "consumer" && authStep === "form" && (
             <p className="text-center mt-4 text-sm text-gray-300">
               {mode === "login" ? (
                 <>

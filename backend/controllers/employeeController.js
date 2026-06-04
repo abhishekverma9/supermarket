@@ -101,6 +101,18 @@ const updateOrderStatus = async (req, res) => {
       order_id,
     ]);
 
+    // RESTORE STOCK ON CANCELLATION
+    // Since the database trigger only runs on DELETE from Order_Items,
+    // we must manually restore stock when an order is simply marked as "Cancelled".
+    if (status === "Cancelled" && order.status !== "Cancelled") {
+      for (const item of items) {
+        await db().query(
+          "UPDATE Product SET stock_quantity = stock_quantity + ? WHERE product_id = ?",
+          [item.quantity, item.product_id]
+        );
+      }
+    }
+
     // 3️⃣ SEND EMAIL BASED ON STATUS
     try {
       switch (status) {

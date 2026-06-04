@@ -4,6 +4,8 @@ import { generateToken } from "../utils/generateToken.js";
 import { generateOTP, storeOTP, verifyOTP, isOTPVerified, removeOTP, canResendOTP } from "../utils/otpStore.js";
 import { sendLoginOTPEmail, sendOTPEmail, sendSignupOTPEmail } from "../utils/emailService.js";
 import { storeAuthSession, getAuthSession, removeAuthSession } from "../utils/authSessionStore.js";
+import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 
 // ---------------------------
 // Signup (Consumer only)
@@ -566,4 +568,105 @@ const verifySignupOtp = async (req, res) => {
   }
 };
 
-export { signupConsumer, login, forgotPassword, verifyOtp, resetPassword, sendLoginOtp, verifyLoginOtp, sendSignupOtp, verifySignupOtp };
+// ---------------------------
+// Google Login / Signup
+// ---------------------------
+const googleLogin = async (req, res) => {
+  try {
+    const { token, role } = req.body;
+    if (!token || !role) {
+      return res.status(400).json({ success: false, message: "Token and role are required" });
+    }
+
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (err) {
+      console.error("Google token verification failed:", err);
+      return res.status(401).json({ success: false, message: "Invalid Google token" });
+    }
+
+    const email = payload.email;
+    const firstName = payload.given_name || "Google";
+    const lastName = payload.family_name || "User";
+
+    if (role === "consumer") {
+      // Check Consumers table
+      const [existingConsumer] = await db().query(
+        "SELECT * FROM Consumers WHERE email = ?",
+        [email]
+      );
+
+      if (existingConsumer.length > 0) {
+        // Log them in
+        const user = existingConsumer[0];
+        const jwtToken = generateToken({ id: user.consumer_id, role: "consumer" });
+        return res.json({
+          success: true,
+          message: "Login successful",
+          token: jwtToken,
+          user: { id: user.consumer_id, name: user.first_name, role: "consumer" },
+        });
+      } else {
+        // Create new consumer account
+        const randomPassword = crypto.randomBytes(16).toString('hex');
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+        
+        const [result] = await db().query(
+          `INSERT INTO Consumers (first_name, last_name, email, phone, password)
+           VALUES (?, ?, ?, ?, ?)`,
+          [firstName, lastName, email, "", hashedPassword]
+        );
+
+        const jwtToken = generateToken({ id: result.insertId, role: "consumer" });
+        return res.status(201).json({
+          success: true,
+          message: "Account created successfully",
+          token: jwtToken,
+          user: { id: result.insertId, name: firstName, role: "consumer" },
+        });
+      }
+    } else if (role === "employee" || role === "owner") {
+      // Check Employee table
+      const [existingEmployee] = await db().query(
+        "SELECT * FROM Employee WHERE email = ?",
+        [email]
+      );
+
+      if (existingEmployee.length > 0) {
+        const user = existingEmployee[0];
+        
+        // Verify role constraints
+        if (role === "owner" && user.role.toLowerCase() !== "admin") {
+          return res.status(403).json({ success: false, message: "Not an Owner" });
+        }
+        if (role === "employee" && user.role.toLowerCase() !== "employee" && user.role.toLowerCase() !== "manager") {
+          return res.status(403).json({ success: false, message: "Not an Employee" });
+        }
+
+        const jwtToken = generateToken({ id: user.employee_id, role });
+        return res.json({
+          success: true,
+          message: "Login successful",
+          token: jwtToken,
+          user: { id: user.employee_id, name: user.first_name, role },
+        });
+      } else {
+        // Do NOT auto-create employees
+        return res.status(403).json({ success: false, message: "Unauthorized: Email not registered as Employee" });
+      }
+    } else {
+      return res.status(400).json({ success: false, message: "Invalid role" });
+    }
+  } catch (error) {
+    console.error("Google Login Error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export { signupConsumer, login, forgotPassword, verifyOtp, resetPassword, sendLoginOtp, verifyLoginOtp, sendSignupOtp, verifySignupOtp, googleLogin };
