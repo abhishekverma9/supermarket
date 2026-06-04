@@ -561,15 +561,31 @@ const LoginPage = () => {
                 </div>
 
                 <div className="flex justify-center w-full">
-                  <GoogleLogin
-                    onSuccess={handleGoogleLoginSuccess}
-                    onError={() => {
-                      toast.error("Google Sign-In was unsuccessful. Try again.");
-                    }}
-                    theme="filled_black"
-                    size="large"
-                    shape="pill"
-                  />
+                  {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+                    <GoogleLogin
+                      onSuccess={handleGoogleLoginSuccess}
+                      onError={() => {
+                        toast.error("Google Sign-In was unsuccessful. Try again.");
+                      }}
+                      theme="filled_black"
+                      size="large"
+                      shape="pill"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toast.error(
+                          "Google Client ID is not configured. Please define VITE_GOOGLE_CLIENT_ID in your frontend .env file.",
+                          { autoClose: 5000 }
+                        );
+                      }}
+                      className="flex items-center justify-center gap-3 px-6 py-2.5 w-full max-w-[250px] rounded-full bg-[#1b1b1b] border border-gray-600 hover:bg-[#282828] text-sm font-semibold transition"
+                    >
+                      <FaGoogle className="text-red-500 text-lg" />
+                      <span>Sign in with Google</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </>
