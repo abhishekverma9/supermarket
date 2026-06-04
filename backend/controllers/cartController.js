@@ -162,7 +162,7 @@ const checkout = async (req, res) => {
     // ─── START TRANSACTION ───
     await connection.beginTransaction();
 
-    // 1️⃣ Fetch cart items with stock info
+        // 1️⃣ Fetch cart items with stock info and LOCK the rows
     const [cartItems] = await connection.query(`
       SELECT c.product_id, c.quantity, p.price, p.stock_quantity, p.name,
              d.value AS discount_value
@@ -171,6 +171,8 @@ const checkout = async (req, res) => {
       LEFT JOIN Product_Discount pd ON p.product_id = pd.product_id
       LEFT JOIN Discount d ON pd.discount_id = d.discount_id
       WHERE c.consumer_id = ?
+      ORDER BY c.product_id -- Prevents database deadlocks by always locking in the same order
+      FOR UPDATE -- This tells MySQL to lock these rows until the transaction finishes
     `, [consumerId]);
 
     if (cartItems.length === 0) {
@@ -224,28 +226,12 @@ const checkout = async (req, res) => {
     );
     const orderId = orderResult.insertId;
 
-    // 5️⃣ Insert order items + decrement stock (atomically)
+    // 5️⃣ Insert order items (Stock is auto-decremented by MySQL Trigger)
     for (const item of calculatedItems) {
       await connection.query(
         `INSERT INTO Order_Items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)`,
         [orderId, item.product_id, item.quantity, item.price]
       );
-
-      // Decrement stock — the WHERE clause ensures we don't go negative
-      const [stockResult] = await connection.query(
-        `UPDATE Product SET stock_quantity = stock_quantity - ? WHERE product_id = ? AND stock_quantity >= ?`,
-        [item.quantity, item.product_id, item.quantity]
-      );
-
-      if (stockResult.affectedRows === 0) {
-        // Race condition: stock was bought by someone else between check and update
-        await connection.rollback();
-        connection.release();
-        return res.status(409).json({
-          success: false,
-          message: `Product is no longer available in the requested quantity. Please refresh and try again.`,
-        });
-      }
     }
 
     // 6️⃣ Insert delivery address

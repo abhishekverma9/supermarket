@@ -17,6 +17,34 @@ export const AuthContextProvider = ({ children }) => {
     const [allOrders, setAllOrders] = useState([])
     const [consumerProfile, setConsumerProfile] = useState(null)
 
+    const logout = () => {
+        setToken(null);
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        setRole("");
+        navigate("/login");
+    };
+
+    useEffect(() => {
+        const interceptor = axios.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (
+                    error.response?.status === 401 && 
+                    error.response?.data?.message === "Invalid or expired token."
+                ) {
+                    toast.info("Session expired. Please login again.");
+                    logout();
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        return () => {
+            axios.interceptors.response.eject(interceptor);
+        };
+    }, [navigate]);
+
     // Fetch consumer profile
     const fetchConsumerProfile = async () => {
         try {
@@ -149,12 +177,16 @@ export const AuthContextProvider = ({ children }) => {
             if (data.success) {
                 toast.success("Order placed successfully");
                 setCart([]);
-                navigate("/consumer/orders"); // redirect to order page
+                fetchOrders();
+                navigate("/consumer/orders");
+                return true;
             } else {
                 toast.error(data.message);
+                return false;
             }
         } catch (error) {
             toast.error(error.response?.data?.message || error.message);
+            return false;
         }
     };
     const fetchAllProducts = async () => {
@@ -248,7 +280,7 @@ export const AuthContextProvider = ({ children }) => {
     }, [token,role])
 
     const value = {
-        token, setToken,fetchAllProducts, backendUrl, products, setProducts, addToCart, updateCartItem, removeCartItem, checkout, clearCart, cart, fetchCartItems, orders, role, setRole, updateProduct, deleteProduct, formatDate, allOrders, consumerProfile, updateConsumerProfile
+        token, setToken,fetchAllProducts, backendUrl, products, setProducts, addToCart, updateCartItem, removeCartItem, checkout, clearCart, cart, fetchCartItems, orders, role, setRole, updateProduct, deleteProduct, formatDate, allOrders, consumerProfile, updateConsumerProfile, logout
     }
     return (
         <AuthContext.Provider value={value}>

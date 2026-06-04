@@ -48,9 +48,13 @@ const CheckoutPage = () => {
     }, 5000);
     
     try {
-      await checkout(formData);
-      // If checkout succeeds, it navigates away, so clearTimeout and state reset not needed
+      const success = await checkout(formData);
       clearTimeout(timeoutId);
+      
+      // If checkout failed, reset the submitting state so the user can try again
+      if (!success) {
+        setIsSubmitting(false);
+      }
     } catch (error) {
       // Error is already handled in AuthContext, but we need to reset state
       clearTimeout(timeoutId);

@@ -17,7 +17,6 @@ import consumerRouter from './routes/consumerRoutes.js'
 
 // ────────────────────────────────────
 // Environment variable validation
-// ────────────────────────────────────
 const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET', 'COMPANY_EMAIL']
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
@@ -25,7 +24,6 @@ for (const envVar of requiredEnvVars) {
     process.exit(1)
   }
 }
-
 // ────────────────────────────────────
 // App config
 // ────────────────────────────────────

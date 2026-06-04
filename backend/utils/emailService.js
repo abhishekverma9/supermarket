@@ -28,7 +28,7 @@ const sendEmailViaBrevo = async ({ to, subject, html, text }) => {
         to: [{ email: to }],
         subject: subject,
         htmlContent: html,
-        textContent: text || "",
+        ...(text ? { textContent: text } : {}),
       }),
     });
 
@@ -376,6 +376,26 @@ export const sendOrderDeliveredEmail = async (email, orderData) => {
 
 // Send Order Cancellation Email
 export const sendOrderCancellationEmail = async (email, orderData) => {
+  const deliveryAddress = `
+    ${orderData.delivery.receiver_name}<br>
+    ${orderData.delivery.house_no}, ${orderData.delivery.street}<br>
+    ${orderData.delivery.building ? orderData.delivery.building + '<br>' : ''}
+    ${orderData.delivery.city}, ${orderData.delivery.state} ${orderData.delivery.pincode}<br>
+    Phone: ${orderData.delivery.phone}
+  `;
+
+  const itemsHtml = orderData.items.map(item => `
+    <tr style="border-bottom: 1px solid #e0e0e0;">
+      <td style="padding: 12px;">
+        <img src="${item.image || '/placeholder.png'}" alt="${item.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+      </td>
+      <td style="padding: 12px; font-weight: 500;">${item.name}</td>
+      <td style="padding: 12px; text-align: center;">${item.quantity}</td>
+      <td style="padding: 12px; text-align: right;">₹${Number(item.price).toFixed(2)}</td>
+      <td style="padding: 12px; text-align: right; font-weight: 600;">₹${(item.price * item.quantity).toFixed(2)}</td>
+    </tr>
+  `).join('');
+
   return sendEmailViaBrevo({
     to: email,
     subject: `Order Cancelled - Order #${orderData.order_id}`,
@@ -394,6 +414,18 @@ export const sendOrderCancellationEmail = async (email, orderData) => {
               <p><strong>Order ID:</strong> #${orderData.order_id}</p>
               <p><strong>Status:</strong> <span style="color:red;font-weight:600;">Cancelled</span></p>
             </div>
+          </div>
+          <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #333; margin-top: 0; border-bottom: 2px solid #FF8C00; padding-bottom: 10px;">Order Items</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+              <tbody>
+                ${itemsHtml}
+              </tbody>
+            </table>
+          </div>
+          <div style="background: white; padding: 20px; border-radius: 8px;">
+            <h3 style="color: #333; margin-top: 0; border-bottom: 2px solid #FF8C00; padding-bottom: 10px;">Delivery Address</h3>
+            <p style="line-height: 1.8; color: #666;">${deliveryAddress}</p>
           </div>
           <div style="margin-top:20px;text-align:center;padding-top:20px;border-top:1px solid #ccc;">
             <p style="font-size:12px;color:#999;">If you need help, our support team is here for you.</p>

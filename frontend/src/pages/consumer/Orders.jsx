@@ -2,6 +2,7 @@ import React, { useContext, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import { FaCheckCircle, FaClock, FaTruck, FaBox, FaShippingFast, FaTimesCircle, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { useEffect } from "react";
 
 const OrdersPage = () => {
   const { orders } = useContext(AuthContext);
@@ -57,7 +58,6 @@ const OrdersPage = () => {
     if (status === "Cancelled") return -1;
     return trackingSteps.indexOf(status);
   };
-
   return (
     <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6 md:p-12 flex justify-center items-start">
       <motion.div
@@ -164,9 +164,9 @@ const OrdersPage = () => {
                         {order.items.map((item, i) => (
                           <div key={i} className="flex justify-between text-sm text-gray-400 bg-white/5 rounded-lg p-2">
                             <span>{item.name} (x{item.quantity})</span>
-                            <span className="text-gray-300">₹{(item.final_price * item.quantity).toFixed(2)}</span>
+                            <span className="text-gray-300">₹{(item.price * item.quantity).toFixed(2)}</span>
                           </div>
-                        ))}
+                        ))} 
                       </div>
                     </div>
 
