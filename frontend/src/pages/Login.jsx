@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
-import { FaGoogle, FaFacebook, FaApple, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaGoogle, FaFacebook, FaApple, FaEye, FaEyeSlash, FaSpinner } from "react-icons/fa";
 import { GoogleLogin } from '@react-oauth/google';
 
 const LoginPage = () => {
@@ -26,6 +26,7 @@ const LoginPage = () => {
   const [forgotPasswordStep, setForgotPasswordStep] = useState("email"); // "email", "otp", "reset"
   const [otpTimer, setOtpTimer] = useState(60); // 60 seconds
   const [canResend, setCanResend] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // New states for login/signup OTP flow
   const [authStep, setAuthStep] = useState("form"); // "form" or "otp"
@@ -44,6 +45,7 @@ const LoginPage = () => {
   };
 
   const handleGoogleLoginSuccess = async (credentialResponse) => {
+    setIsLoading(true);
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/google`, {
         token: credentialResponse.credential,
@@ -60,11 +62,14 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Google Sign-In failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       if (mode === "signup") {
         // Send signup OTP
@@ -112,10 +117,13 @@ const LoginPage = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
       setWrongPasswordAttempted(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleVerifyAuthOtp = async () => {
+    setIsLoading(true);
     try {
       if (mode === "signup") {
         const { data } = await axios.post(`${backendUrl}/api/auth/verify-signup-otp`, {
@@ -150,12 +158,15 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleResendAuthOtp = async () => {
-    if (!canResendAuthOtp) return;
+    if (!canResendAuthOtp || isLoading) return;
     
+    setIsLoading(true);
     try {
       if (mode === "signup") {
         const { data } = await axios.post(`${backendUrl}/api/auth/send-signup-otp`, {
@@ -194,6 +205,8 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -250,9 +263,11 @@ const LoginPage = () => {
   }, [authStep, authOtpTimer]);
 
   const handleForgotPasswordEmail = async () => {
+    setIsLoading(true);
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/forgot-password`, {
         email: forgotEmail,
+        role: selectedRole,
       });
       if (data.success) {
         toast.success("OTP sent to your email");
@@ -264,13 +279,18 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleResendOtp = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/forgot-password`, {
         email: forgotEmail,
+        role: selectedRole,
         resend: true,
       });
       if (data.success) {
@@ -283,10 +303,13 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to resend OTP");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
+    setIsLoading(true);
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/verify-otp`, {
         email: forgotEmail,
@@ -300,6 +323,8 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Invalid OTP");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -312,9 +337,11 @@ const LoginPage = () => {
       toast.error("Password must be at least 6 characters");
       return;
     }
+    setIsLoading(true);
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/reset-password`, {
         email: forgotEmail,
+        role: selectedRole,
         otp,
         newPassword,
       });
@@ -331,6 +358,8 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to reset password");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -435,9 +464,10 @@ const LoginPage = () => {
 
               <button
                 onClick={handleVerifyAuthOtp}
-                className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold shadow-xl hover:shadow-[0_0_20px_rgba(255,140,0,0.3)] transition-transform hover:scale-[1.02]"
+                disabled={isLoading}
+                className={`w-full px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold shadow-xl transition-transform ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-[0_0_20px_rgba(255,140,0,0.3)] hover:scale-[1.02]'}`}
               >
-                Verify OTP
+                {isLoading ? <><FaSpinner className="animate-spin inline mr-2" /> Verifying...</> : "Verify OTP"}
               </button>
               
               <button
@@ -541,9 +571,12 @@ const LoginPage = () => {
 
                 <button
                   type="submit"
-                  className="w-full px-4 py-3 mt-2 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold shadow-xl hover:shadow-[0_0_20px_rgba(255,140,0,0.3)] transition-transform hover:scale-[1.02]"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 mt-2 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold shadow-xl transition-transform ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-[0_0_20px_rgba(255,140,0,0.3)] hover:scale-[1.02]'}`}
                 >
-                  {mode === "signup"
+                  {isLoading ? (
+                    <><FaSpinner className="animate-spin inline mr-2" /> Loading...</>
+                  ) : mode === "signup"
                     ? "Sign Up as Consumer"
                     : `Login as ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}`}
                 </button>
@@ -681,9 +714,10 @@ const LoginPage = () => {
                 />
                 <button
                   onClick={handleForgotPasswordEmail}
-                  className="w-full px-4 py-3 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold shadow-md transition-transform hover:scale-105"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 rounded-lg bg-orange-500 text-white font-semibold shadow-md transition-transform ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-orange-400 hover:scale-105'}`}
                 >
-                  Send OTP
+                  {isLoading ? <><FaSpinner className="animate-spin inline mr-2" /> Sending...</> : "Send OTP"}
                 </button>
               </div>
             )}
@@ -722,9 +756,10 @@ const LoginPage = () => {
 
                 <button
                   onClick={handleVerifyOtp}
-                  className="w-full px-4 py-3 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold shadow-md transition-transform hover:scale-105"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 rounded-lg bg-orange-500 text-white font-semibold shadow-md transition-transform ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-orange-400 hover:scale-105'}`}
                 >
-                  Verify OTP
+                  {isLoading ? <><FaSpinner className="animate-spin inline mr-2" /> Verifying...</> : "Verify OTP"}
                 </button>
                 <button
                   onClick={() => {
@@ -773,9 +808,10 @@ const LoginPage = () => {
                 </div>
                 <button
                   onClick={handleResetPassword}
-                  className="w-full px-4 py-3 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold shadow-md transition-transform hover:scale-105"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 rounded-lg bg-orange-500 text-white font-semibold shadow-md transition-transform ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-orange-400 hover:scale-105'}`}
                 >
-                  Reset Password
+                  {isLoading ? <><FaSpinner className="animate-spin inline mr-2" /> Resetting...</> : "Reset Password"}
                 </button>
                 <button
                   onClick={() => setForgotPasswordStep("otp")}

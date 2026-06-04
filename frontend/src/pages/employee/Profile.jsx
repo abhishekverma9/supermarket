@@ -14,6 +14,7 @@ import {
   FaUserTie,
   FaImage,
   FaUsers,
+  FaSpinner,
 } from "react-icons/fa";
 
 const EmpProfile = () => {
@@ -312,8 +313,11 @@ const EmpProfile = () => {
                         updating ? "opacity-50 cursor-not-allowed" : ""
                       }`}
                     >
-                      <FaSave size={18} />
-                      {updating ? "Saving..." : "Save Changes"}
+                      {updating ? (
+                        <><FaSpinner className="animate-spin mr-2 inline" /> Saving...</>
+                      ) : (
+                        <><FaSave size={18} /> Save Changes</>
+                      )}
                     </motion.button>
                     <motion.button
                       type="button"

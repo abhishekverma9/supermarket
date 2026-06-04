@@ -125,9 +125,9 @@ const login = async (req, res) => {
 // ---------------------------
 const forgotPassword = async (req, res) => {
   try {
-    const { email, resend } = req.body; 
-    if (!email) {
-      return res.status(400).json({ success: false, message: "Email is required" });
+    const { email, resend, role } = req.body; 
+    if (!email || !role) {
+      return res.status(400).json({ success: false, message: "Email and role are required" });
     }
 
     // Check resend cooldown (1 minute)
@@ -141,26 +141,30 @@ const forgotPassword = async (req, res) => {
       }
     }
 
-    // Check if user exists (check both Consumers and Employee tables)
     let user = null;
+    let tableName = "";
 
-    // Check Consumers table
-    const [consumers] = await db().query(
-      "SELECT * FROM Consumers WHERE email = ?",
-      [email]
-    );
-
-    if (consumers.length > 0) {
-      user = consumers[0];
+    if (role === "consumer") {
+      tableName = "Consumers";
+    } else if (role === "employee" || role === "owner") {
+      tableName = "Employee";
     } else {
-      // Check Employee table
-      const [employees] = await db().query(
-        "SELECT * FROM Employee WHERE email = ?",
-        [email]
-      );
+      return res.status(400).json({ success: false, message: "Invalid role" });
+    }
 
-      if (employees.length > 0) {
-        user = employees[0];
+    const [rows] = await db().query(`SELECT * FROM ${tableName} WHERE email = ?`, [email]);
+    
+    if (rows.length > 0) {
+      user = rows[0];
+      
+      // Role validation for employees/owners
+      if (tableName === "Employee") {
+        if (role === "owner" && user.role.toLowerCase() !== "admin") {
+          return res.status(403).json({ success: false, message: "Not an Owner" });
+        }
+        if (role === "employee" && user.role.toLowerCase() !== "employee" && user.role.toLowerCase() !== "manager") {
+          return res.status(403).json({ success: false, message: "Not an Employee" });
+        }
       }
     }
 
@@ -230,12 +234,12 @@ const verifyOtp = async (req, res) => {
 // ---------------------------
 const resetPassword = async (req, res) => {
   try {
-    const { email, otp, newPassword } = req.body;
+    const { email, otp, newPassword, role } = req.body;
 
-    if (!email || !otp || !newPassword) {
+    if (!email || !otp || !newPassword || !role) {
       return res.status(400).json({
         success: false,
-        message: "Email, OTP, and new password are required",
+        message: "Email, OTP, new password, and role are required",
       });
     }
 
@@ -255,30 +259,21 @@ const resetPassword = async (req, res) => {
       }
     }
 
-    // Find user
     let user = null;
-    let tableName = null;
+    let tableName = "";
 
-    // Check Consumers table
-    const [consumers] = await db().query(
-      "SELECT * FROM Consumers WHERE email = ?",
-      [email]
-    );
-
-    if (consumers.length > 0) {
-      user = consumers[0];
+    if (role === "consumer") {
       tableName = "Consumers";
+    } else if (role === "employee" || role === "owner") {
+      tableName = "Employee";
     } else {
-      // Check Employee table
-      const [employees] = await db().query(
-        "SELECT * FROM Employee WHERE email = ?",
-        [email]
-      );
+      return res.status(400).json({ success: false, message: "Invalid role" });
+    }
 
-      if (employees.length > 0) {
-        user = employees[0];
-        tableName = "Employee";
-      }
+    const [rows] = await db().query(`SELECT * FROM ${tableName} WHERE email = ?`, [email]);
+    
+    if (rows.length > 0) {
+      user = rows[0];
     }
 
     if (!user) {

@@ -1,7 +1,7 @@
 import axios from "axios";
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { FaTrash, FaEdit, FaSave, FaUserPlus } from "react-icons/fa";
+import { FaTrash, FaEdit, FaSave, FaUserPlus, FaSpinner } from "react-icons/fa";
 import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 
@@ -11,6 +11,8 @@ const OwnerEmployees = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({ salary: "", manager_id: "" });
+  const [isDeletingId, setIsDeletingId] = useState(null);
+  const [isSavingId, setIsSavingId] = useState(null);
 
   const totalSalary = useMemo(() => {
     return employees.reduce((sum, o) => sum + Number(o.salary), 0);
@@ -79,6 +81,7 @@ const OwnerEmployees = () => {
 
   // Delete Employee
   const handleDelete = async (employee_id) => {
+    setIsDeletingId(employee_id);
     try {
       const { data } = await axios.post(
         `${backendUrl}/api/admin/delete/${employee_id}`,
@@ -91,6 +94,8 @@ const OwnerEmployees = () => {
       } else toast.error(data.message);
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setIsDeletingId(null);
     }
   };
 
@@ -101,6 +106,7 @@ const OwnerEmployees = () => {
   };
 
   const handleSave = async (employee_id) => {
+    setIsSavingId(employee_id);
     try {
       const { data } = await axios.post(
         `${backendUrl}/api/admin/update/${employee_id}`,
@@ -114,6 +120,8 @@ const OwnerEmployees = () => {
       } else toast.error(data.message);
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setIsSavingId(null);
     }
   };
 
@@ -189,14 +197,14 @@ const OwnerEmployees = () => {
 
           <button
             type="submit"
-            className={`px-5 py-2 rounded-lg text-white font-semibold transition-transform hover:scale-105 ${
+            className={`px-5 py-2 rounded-lg text-white font-semibold transition-transform hover:scale-105 flex items-center justify-center gap-2 ${
               isSubmitting
-                ? "bg-gray-400 cursor-not-allowed"
+                ? "bg-gray-400 cursor-not-allowed opacity-70"
                 : "bg-orange-500 hover:bg-orange-400"
             }`}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Adding..." : "Add"}
+            {isSubmitting ? <><FaSpinner className="animate-spin" /> Adding...</> : "Add"}
           </button>
         </form>
       </motion.div>
@@ -281,9 +289,10 @@ const OwnerEmployees = () => {
                   {editingId === emp.employee_id ? (
                     <button
                       onClick={() => handleSave(emp.employee_id)}
-                      className="text-green-500 hover:text-green-400"
+                      disabled={isSavingId === emp.employee_id}
+                      className={`transition-colors ${isSavingId === emp.employee_id ? "text-gray-500 cursor-not-allowed" : "text-green-500 hover:text-green-400"}`}
                     >
-                      <FaSave />
+                      {isSavingId === emp.employee_id ? <FaSpinner className="animate-spin" /> : <FaSave />}
                     </button>
                   ) : (
                     <button
@@ -295,9 +304,10 @@ const OwnerEmployees = () => {
                   )}
                   <button
                     onClick={() => handleDelete(emp.employee_id)}
-                    className="text-red-500 hover:text-red-400"
+                    disabled={isDeletingId === emp.employee_id}
+                    className={`transition-colors ${isDeletingId === emp.employee_id ? "text-gray-500 cursor-not-allowed" : "text-red-500 hover:text-red-400"}`}
                   >
-                    <FaTrash />
+                    {isDeletingId === emp.employee_id ? <FaSpinner className="animate-spin" /> : <FaTrash />}
                   </button>
                 </td>
               </tr>

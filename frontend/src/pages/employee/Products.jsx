@@ -12,6 +12,7 @@ import {
   FaRupeeSign,
   FaWarehouse,
   FaCalendarAlt,
+  FaSpinner,
 } from "react-icons/fa";
 
 const AddProduct = () => {
@@ -228,8 +229,11 @@ const AddProduct = () => {
                 loading ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
-              <FaPlusCircle size={20} />
-              {loading ? "Adding Product..." : "Add Product"}
+              {loading ? (
+                <><FaSpinner className="animate-spin mr-2 inline" /> Adding Product...</>
+              ) : (
+                <><FaPlusCircle size={20} /> Add Product</>
+              )}
             </motion.button>
           </form>
         </motion.div>

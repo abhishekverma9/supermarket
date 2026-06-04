@@ -13,6 +13,7 @@ import {
   FaExclamationTriangle,
   FaCheckCircle,
   FaTag,
+  FaSpinner,
 } from "react-icons/fa";
 
 const OwnerProducts = () => {
@@ -20,6 +21,7 @@ const OwnerProducts = () => {
 
   const [editRow, setEditRow] = useState(null); // product_id being edited
   const [formData, setFormData] = useState({ value: "", description: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate statistics
   const stats = React.useMemo(() => {
@@ -45,6 +47,7 @@ const OwnerProducts = () => {
   };
 
   const handleSave = async (product_Id) => {
+    setIsSubmitting(true);
     try {
       const { data } = await axios.post(
         backendUrl + `/api/admin/update-discount/${product_Id}`,
@@ -60,6 +63,8 @@ const OwnerProducts = () => {
       }
     } catch (err) {
       toast.error(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -309,12 +314,18 @@ const OwnerProducts = () => {
                     <div className="flex gap-3">
                       <motion.button
                         onClick={() => handleSave(p.product_id)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="flex-1 px-4 py-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/30 font-semibold flex items-center justify-center gap-2 transition-colors"
+                        disabled={isSubmitting}
+                        whileHover={!isSubmitting ? { scale: 1.05 } : {}}
+                        whileTap={!isSubmitting ? { scale: 0.95 } : {}}
+                        className={`flex-1 px-4 py-2 rounded-lg text-green-300 border border-green-500/30 font-semibold flex items-center justify-center gap-2 transition-colors ${
+                          isSubmitting ? "bg-green-500/10 opacity-50 cursor-not-allowed" : "bg-green-500/20 hover:bg-green-500/30"
+                        }`}
                       >
-                        <FaSave size={16} />
-                        Save
+                        {isSubmitting ? (
+                          <><FaSpinner className="animate-spin" /> Saving...</>
+                        ) : (
+                          <><FaSave size={16} /> Save</>
+                        )}
                       </motion.button>
                       <motion.button
                         onClick={handleCancel}
