@@ -335,7 +335,14 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-orange-500/50 via-[#8A2BE2]/60 to-[#121212] text-[#F5F5F5] overflow-hidden">
+    <div className="relative w-full min-h-screen flex flex-col md:flex-row bg-[#0a0a0f] text-[#f0f0f5] overflow-hidden">
+      {/* Background blobs to match Home page */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-orange-500 opacity-[0.07] rounded-full blur-[120px] animate-float" />
+        <div className="absolute top-1/3 -right-20 w-[600px] h-[600px] bg-[#FF4B91] opacity-[0.06] rounded-full blur-[120px] animate-float-delayed" />
+        <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-[#8A2BE2] opacity-[0.06] rounded-full blur-[120px] animate-float" />
+      </div>
+
       {/* Left Brand Section */}
       <motion.div
         initial={{ opacity: 0, x: -60 }}
@@ -361,9 +368,9 @@ const LoginPage = () => {
         initial={{ opacity: 0, x: 60 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 1 }}
-        className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-12"
+        className="relative z-10 flex-1 flex items-center justify-center p-4 sm:p-6 md:p-12"
       >
-        <div className="w-full max-w-md bg-[#2E2E2E]/70 backdrop-blur-xl p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30">
+        <div className="w-full max-w-md glass p-6 sm:p-8 md:p-10 rounded-3xl shadow-2xl">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-orange-500">
             {mode === "signup" ? "Create Account" : "Welcome Back"}
           </h2>
@@ -428,7 +435,7 @@ const LoginPage = () => {
 
               <button
                 onClick={handleVerifyAuthOtp}
-                className="w-full px-4 py-3 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold shadow-md transition-transform hover:scale-105"
+                className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold shadow-xl hover:shadow-[0_0_20px_rgba(255,140,0,0.3)] transition-transform hover:scale-[1.02]"
               >
                 Verify OTP
               </button>
@@ -534,7 +541,7 @@ const LoginPage = () => {
 
                 <button
                   type="submit"
-                  className="w-full px-4 py-3 mt-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold shadow-md transition-transform hover:scale-105"
+                  className="w-full px-4 py-3 mt-2 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold shadow-xl hover:shadow-[0_0_20px_rgba(255,140,0,0.3)] transition-transform hover:scale-[1.02]"
                 >
                   {mode === "signup"
                     ? "Sign Up as Consumer"
