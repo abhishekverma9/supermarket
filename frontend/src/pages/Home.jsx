@@ -19,6 +19,7 @@ import {
   FaLinkedin,
   FaTwitter,
   FaChevronUp,
+  FaChevronDown,
 } from "react-icons/fa";
 
 /* ───────────── Scroll-to-top button ───────────── */
@@ -80,6 +81,7 @@ const Home = () => {
     { label: "Home", href: "#hero" },
     { label: "Features", href: "#features" },
     { label: "Why Us", href: "#why-us" },
+    { label: "FAQ", href: "#faq" },
   ];
 
   const scrollTo = (id) => {
@@ -112,6 +114,8 @@ const Home = () => {
     { icon: <FaHeadset size={28} />, title: "24/7 Support", desc: "AI chatbot + dedicated support for instant help anytime" },
     { icon: <FaStar size={28} />, title: "Premium Quality", desc: "Curated products with ratings & reviews from real customers" },
   ];
+
+  const [faqOpen, setFaqOpen] = useState(false);
 
   return (
     <div className="relative w-full min-h-screen overflow-x-hidden bg-[#0a0a0f] text-[#f0f0f5]">
@@ -292,6 +296,33 @@ const Home = () => {
         </div>
       </section>
 
+      {/* ─── FAQ SECTION ─── */}
+      <section id="faq" className="py-24 px-6">
+        <div className="max-w-4xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-gradient mb-4">Frequently Asked Questions</h2>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto">Find answers to common questions about Shop4Ever.</p>
+          </motion.div>
+          <div className="space-y-4">
+            <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="glass border border-[#FF8C00]/20 rounded-2xl overflow-hidden transition-all duration-300">
+              <button onClick={() => setFaqOpen(!faqOpen)} className="w-full px-8 py-6 text-left flex justify-between items-center bg-transparent focus:outline-none hover:bg-white/5 transition-colors">
+                <span className="text-lg font-bold text-gray-100 pr-4">If I log in via Google and want to log in with email later, how do I get a password?</span>
+                <FaChevronDown className={`text-orange-500 transition-transform duration-300 flex-shrink-0 ${faqOpen ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {faqOpen && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                    <div className="px-8 pb-6 text-gray-400 leading-relaxed text-[15px] border-t border-white/5 pt-4">
+                      You can get a password by using the <strong>"Forgot Password"</strong> method on the Login page. Simply click "Forgot Password", enter your Google email address, verify the OTP sent to your inbox, and set a new password. You can then use that password to log in via email!
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* ─── CTA SECTION ─── */}
       <section className="py-24 px-6">
         <div className="max-w-4xl mx-auto">
@@ -338,6 +369,7 @@ const Home = () => {
                 <button onClick={() => scrollTo("#hero")} className="text-left text-sm text-gray-500 hover:text-orange-500 transition-colors">Home</button>
                 <button onClick={() => scrollTo("#features")} className="text-left text-sm text-gray-500 hover:text-orange-500 transition-colors">Features</button>
                 <button onClick={() => scrollTo("#why-us")} className="text-left text-sm text-gray-500 hover:text-orange-500 transition-colors">Why Us</button>
+                <button onClick={() => scrollTo("#faq")} className="text-left text-sm text-gray-500 hover:text-orange-500 transition-colors">FAQ</button>
                 <button onClick={() => navigate("/login")} className="text-left text-sm text-gray-500 hover:text-orange-500 transition-colors">Login</button>
               </div>
             </div>
