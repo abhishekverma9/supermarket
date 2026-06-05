@@ -37,13 +37,24 @@ const ProductGrid = () => {
   // Fetch images from Unsplash dynamically
   useEffect(() => {
     const fetchImages = async () => {
+      const apiKey = import.meta.env.VITE_UNSPLASH_API_KEY;
+      if (!apiKey) {
+        // Skip fetching if API key is not configured
+        const updatedUrls = {};
+        for (const product of products) {
+          updatedUrls[product.product_id] = product.product_image;
+        }
+        setImageUrls(updatedUrls);
+        return;
+      }
+
       const updatedUrls = {};
       for (const product of products) {
         try {
           const response = await fetch(
             `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
               product.name
-            )}&per_page=1&client_id=${import.meta.env.VITE_UNSPLASH_API_KEY}`
+            )}&per_page=1&client_id=${apiKey}`
           );
           if (!response.ok) throw new Error("Unsplash API limit or error");
           const data = await response.json();

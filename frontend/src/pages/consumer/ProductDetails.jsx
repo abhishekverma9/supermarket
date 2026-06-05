@@ -26,11 +26,17 @@ const ProductDetails = () => {
       
       // Fetch image from Unsplash
       const fetchImage = async () => {
+        const apiKey = import.meta.env.VITE_UNSPLASH_API_KEY;
+        if (!apiKey) {
+          setImageUrl(foundProduct.product_image);
+          setLoading(false);
+          return;
+        }
         try {
           const response = await fetch(
             `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
               foundProduct.name
-            )}&per_page=1&client_id=${import.meta.env.VITE_UNSPLASH_API_KEY}`
+            )}&per_page=1&client_id=${apiKey}`
           );
           if (response.ok) {
             const data = await response.json();

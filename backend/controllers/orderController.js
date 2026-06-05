@@ -8,14 +8,14 @@ const getOrders = async (req, res) => {
     const consumerId = req.userId;
 
     // Fetch all orders with delivery address
-    const { rows: orders } = await db().query(
+    const [orders] = await db().query(
       `
       SELECT o.order_id, o.total_amount, o.status, o.order_date,
              da.receiver_name, da.phone, da.house_no, da.street, da.building,
              da.city, da.state, da.pincode, da.delivery_instructions
       FROM Orders o
       JOIN delivery_address da ON o.order_id = da.order_id
-      WHERE o.consumer_id = $1
+      WHERE o.consumer_id = ?
       ORDER BY o.order_date DESC
       `,
       [consumerId]
@@ -23,12 +23,12 @@ const getOrders = async (req, res) => {
 
     // Fetch items for each order
     for (const order of orders) {
-      const { rows: items } = await db().query(
+      const [items] = await db().query(
         `
         SELECT oi.order_item_id, oi.product_id, p.name, oi.quantity, oi.price, p.image
         FROM Order_Items oi
         JOIN Product p ON oi.product_id = p.product_id
-        WHERE oi.order_id = $1
+        WHERE oi.order_id = ?
         `,
         [order.order_id]
       );
@@ -55,14 +55,14 @@ const getOrderById = async (req, res) => {
     const { order_id } = req.params;
 
     // Fetch order with address
-    const { rows: orders } = await db().query(
+    const [orders] = await db().query(
       `
       SELECT o.order_id, o.total_amount, o.status, o.order_date,
              da.receiver_name, da.phone, da.house_no, da.street, da.building,
              da.city, da.state, da.pincode, da.delivery_instructions
       FROM Orders o
       JOIN delivery_address da ON o.order_id = da.order_id
-      WHERE o.consumer_id = $1 AND o.order_id = $2
+      WHERE o.consumer_id = ? AND o.order_id = ?
       `,
       [consumerId, order_id]
     );
@@ -74,12 +74,12 @@ const getOrderById = async (req, res) => {
     const order = orders[0];
 
     // Fetch order items
-    const { rows: items } = await db().query(
+    const [items] = await db().query(
       `
       SELECT oi.order_item_id, oi.product_id, p.name, oi.quantity, oi.price, p.image
       FROM Order_Items oi
       JOIN Product p ON oi.product_id = p.product_id
-      WHERE oi.order_id = $1
+      WHERE oi.order_id = ?
       `,
       [order.order_id]
     );

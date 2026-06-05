@@ -54,7 +54,7 @@ export const AuthContextProvider = ({ children }) => {
     const fetchCartItems = async () => {
         if (isGuest) return; // Guest mode uses local state
         try {
-            const { data } = await axios.get(`${backendUrl}/api/cart/get`, {
+            const { data } = await axios.get(`${backendUrl}/api/cart/get?t=${Date.now()}`, {
                 headers: { token },
             });
             if (data.success) {
@@ -206,7 +206,7 @@ export const AuthContextProvider = ({ children }) => {
             return;
         }
         try {
-            const { data } = await axios.get(backendUrl + '/api/product/products', { headers: { token } })
+            const { data } = await axios.get(`${backendUrl}/api/product/products?t=${Date.now()}`, { headers: { token } })
             if (data.success) {
                 setProducts(data.products)
             } else {
@@ -219,7 +219,7 @@ export const AuthContextProvider = ({ children }) => {
     const fetchOrders = async () => {
         if (isGuest) return; // Guest orders are managed locally
         try {
-            const { data } = await axios.get(`${backendUrl}/api/order/orders`, {
+            const { data } = await axios.get(`${backendUrl}/api/order/orders?t=${Date.now()}`, {
                 headers: { token }
             });
             if (data.success) {
