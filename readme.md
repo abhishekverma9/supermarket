@@ -74,7 +74,7 @@
 ### 👤 Consumer Portal
 - **Product browsing** — Responsive grid with search, category filters, and price range filters
 - **Dynamic product images** — Auto-fetched from Unsplash API with ImageKit fallback
-- **Product details** — Dedicated page with full description, pricing, and stock info
+- **Product details & Reviews** — Dedicated page with description, pricing, and a live rating/review system
 - **Shopping cart** — Add/update/remove items with real-time quantity management
 - **Checkout & orders** — Place orders and track order status (Pending → Shipped → Delivered)
 - **Discount display** — Automatic discount calculation with strikethrough original prices
