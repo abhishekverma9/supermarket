@@ -82,6 +82,7 @@ export const AuthContextProvider = ({ children }) => {
 
     // Fetch consumer profile
     const fetchConsumerProfile = async () => {
+        if (isGuest) return;
         try {
             const { data } = await axios.get(`${backendUrl}/api/consumer/profile`, {
                 headers: { token }
