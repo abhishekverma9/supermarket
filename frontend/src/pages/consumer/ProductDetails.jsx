@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaShoppingCart, FaStar, FaArrowLeft } from "react-icons/fa";
 import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
+import RecommendationCarousel from "../../components/RecommendationCarousel";
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -253,6 +254,9 @@ const ProductDetails = () => {
             </motion.button>
           </motion.div>
         </div>
+
+        {/* Recommendations Section */}
+        <RecommendationCarousel productId={product.product_id} />
 
         {/* Ratings & Reviews Section */}
         <motion.div

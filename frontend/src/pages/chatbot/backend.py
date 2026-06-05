@@ -54,6 +54,9 @@ class QueryRequest(BaseModel):
     query: str
     auth_token: Optional[str] = None
 
+class RecommendRequest(BaseModel):
+    auth_token: Optional[str] = None
+
 class ChatMessage(BaseModel):
     type: str  # "user", "agent", "thought"
     content: str
@@ -273,6 +276,42 @@ async def health():
         "live_supermarket_api": live_status,
         "graph_rag": get_graph_health(),
         "local_vector_db": vector_retriever is not None,
+    }
+
+
+@app.post("/recommend/{product_id}")
+async def recommend_similar_products(product_id: int, req: RecommendRequest):
+    """Returns a list of recommended product IDs based on vector similarity."""
+    from live_data import fetch_live_products, _get_live_retriever, product_to_document
+
+    products = await fetch_live_products(req.auth_token)
+    target_product = next((p for p in products if p.get("product_id") == product_id), None)
+    
+    if not target_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    query_text = product_to_document(target_product).page_content
+    
+    # Get retriever (k=6 so we can exclude the original product)
+    retriever = await _get_live_retriever(req.auth_token, k=6)
+    if not retriever:
+        raise HTTPException(status_code=500, detail="Live retriever not available")
+
+    docs = await retriever.ainvoke(query_text)
+    
+    recommended_ids = []
+    for d in docs:
+        pid = d.metadata.get("product_id")
+        if pid and pid != product_id and pid not in recommended_ids:
+            recommended_ids.append(pid)
+            
+    # Also fetch full product objects to return
+    recommended_products = [p for p in products if p.get("product_id") in recommended_ids][:5]
+    
+    return {
+        "success": True,
+        "product_id": product_id,
+        "recommendations": recommended_products
     }
 
 
