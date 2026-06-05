@@ -6,7 +6,7 @@ import { FaShoppingCart, FaStar, FaChevronLeft, FaChevronRight, FaSpinner } from
 
 const RecommendationCarousel = ({ productId }) => {
   const navigate = useNavigate();
-  const { token, addToCart } = useContext(AuthContext);
+  const { token, addToCart, isGuest, products } = useContext(AuthContext);
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,6 +15,18 @@ const RecommendationCarousel = ({ productId }) => {
 
   useEffect(() => {
     const fetchRecommendations = async () => {
+      if (isGuest) {
+        // Show mock recommendations for guests since they don't have access to live DB
+        const mockRecs = products
+          .filter(p => p.product_id !== parseInt(productId))
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 5);
+        setRecommendations(mockRecs);
+        fetchImages(mockRecs);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
