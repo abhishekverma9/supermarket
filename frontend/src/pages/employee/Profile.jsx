@@ -14,6 +14,7 @@ import {
   FaUserTie,
   FaImage,
   FaUsers,
+  FaSpinner,
 } from "react-icons/fa";
 
 const EmpProfile = () => {
@@ -125,7 +126,7 @@ const EmpProfile = () => {
     "w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40 outline-none transition-all duration-200";
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-6 md:p-12">
+    <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <motion.div
@@ -134,7 +135,7 @@ const EmpProfile = () => {
           transition={{ duration: 0.7 }}
           className="mb-8 text-center"
         >
-          <h2 className="text-4xl font-extrabold mb-2 text-[#FF8C00] drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
+          <h2 className="text-4xl font-extrabold mb-2 text-orange-500 drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
             My Profile
           </h2>
           <p className="text-gray-400 text-lg">
@@ -169,7 +170,7 @@ const EmpProfile = () => {
                     <h2 className="text-3xl font-bold text-gray-100 mb-2">
                       {profile.first_name} {profile.last_name}
                     </h2>
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FF8C00]/20 border border-[#FF8C00]/30 text-[#FF8C00] mb-2">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/20 border border-[#FF8C00]/30 text-orange-500 mb-2">
                       <FaUserTie size={16} />
                       <span className="font-semibold">{profile.role || "Employee"}</span>
                     </div>
@@ -178,7 +179,7 @@ const EmpProfile = () => {
                   <div className="space-y-4">
                     <div className="bg-[#1e1e1e] p-4 rounded-xl border border-[#FF8C00]/20">
                       <div className="flex items-center gap-3 mb-2">
-                        <FaUser className="text-[#FF8C00]" />
+                        <FaUser className="text-orange-500" />
                         <span className="text-gray-400 text-sm font-semibold">Full Name</span>
                       </div>
                       <p className="text-gray-100 text-lg">
@@ -188,7 +189,7 @@ const EmpProfile = () => {
 
                     <div className="bg-[#1e1e1e] p-4 rounded-xl border border-[#FF8C00]/20">
                       <div className="flex items-center gap-3 mb-2">
-                        <FaEnvelope className="text-[#FF8C00]" />
+                        <FaEnvelope className="text-orange-500" />
                         <span className="text-gray-400 text-sm font-semibold">Email</span>
                       </div>
                       <p className="text-gray-100 text-lg">{profile.email}</p>
@@ -196,7 +197,7 @@ const EmpProfile = () => {
 
                     <div className="bg-[#1e1e1e] p-4 rounded-xl border border-[#FF8C00]/20">
                       <div className="flex items-center gap-3 mb-2">
-                        <FaPhone className="text-[#FF8C00]" />
+                        <FaPhone className="text-orange-500" />
                         <span className="text-gray-400 text-sm font-semibold">Phone</span>
                       </div>
                       <p className="text-gray-100 text-lg">
@@ -207,7 +208,7 @@ const EmpProfile = () => {
                     {profile.created_at && (
                       <div className="bg-[#1e1e1e] p-4 rounded-xl border border-[#FF8C00]/20">
                         <div className="flex items-center gap-3 mb-2">
-                          <FaCalendarAlt className="text-[#FF8C00]" />
+                          <FaCalendarAlt className="text-orange-500" />
                           <span className="text-gray-400 text-sm font-semibold">Joined</span>
                         </div>
                         <p className="text-gray-100 text-lg">
@@ -225,7 +226,7 @@ const EmpProfile = () => {
                     onClick={() => setIsEdit(true)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full mt-8 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold flex items-center justify-center gap-2 transition-colors"
+                    className="w-full mt-8 py-3 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold flex items-center justify-center gap-2 transition-colors"
                   >
                     <FaEdit size={18} />
                     Edit Profile
@@ -254,7 +255,7 @@ const EmpProfile = () => {
                         className="hidden"
                       />
                       <div className="px-4 py-2 rounded-lg bg-[#1e1e1e] border border-[#FF8C00]/30 hover:bg-[#2E2E2E] transition-colors flex items-center gap-2 text-gray-100">
-                        <FaImage className="text-[#FF8C00]" />
+                        <FaImage className="text-orange-500" />
                         <span>Change Photo</span>
                       </div>
                     </label>
@@ -312,8 +313,11 @@ const EmpProfile = () => {
                         updating ? "opacity-50 cursor-not-allowed" : ""
                       }`}
                     >
-                      <FaSave size={18} />
-                      {updating ? "Saving..." : "Save Changes"}
+                      {updating ? (
+                        <><FaSpinner className="animate-spin mr-2 inline" /> Saving...</>
+                      ) : (
+                        <><FaSave size={18} /> Save Changes</>
+                      )}
                     </motion.button>
                     <motion.button
                       type="button"
@@ -341,7 +345,7 @@ const EmpProfile = () => {
             >
               <div className="bg-[#2E2E2E]/70 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-[#FF8C00]/30">
                 <h3 className="text-2xl font-bold mb-6 text-gray-100 flex items-center gap-2">
-                  <FaUsers className="text-[#FF8C00]" />
+                  <FaUsers className="text-orange-500" />
                   Team Members
                 </h3>
                 <div className="space-y-4">
@@ -364,7 +368,7 @@ const EmpProfile = () => {
                           <p className="font-semibold text-gray-100">
                             {emp.first_name} {emp.last_name}
                           </p>
-                          <p className="text-sm text-[#FF8C00]">{emp.role}</p>
+                          <p className="text-sm text-orange-500">{emp.role}</p>
                         </div>
                       </div>
                       {emp.phone && (

@@ -7,7 +7,7 @@ const getOrders = async (req, res) => {
   try {
     const consumerId = req.userId;
 
-    // Fetch all orders with delivery address
+    // Fetch all orders with delivery address (MySQL syntax with ?)
     const [orders] = await db().query(
       `
       SELECT o.order_id, o.total_amount, o.status, o.order_date,
@@ -42,7 +42,7 @@ const getOrders = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch orders" });
   }
 };
 
@@ -54,7 +54,7 @@ const getOrderById = async (req, res) => {
     const consumerId = req.userId;
     const { order_id } = req.params;
 
-    // Fetch order with address
+    // Fetch order with address (MySQL syntax with ?)
     const [orders] = await db().query(
       `
       SELECT o.order_id, o.total_amount, o.status, o.order_date,
@@ -73,7 +73,7 @@ const getOrderById = async (req, res) => {
 
     const order = orders[0];
 
-    // Fetch order items
+    // Fetch order items (MySQL syntax with ?)
     const [items] = await db().query(
       `
       SELECT oi.order_item_id, oi.product_id, p.name, oi.quantity, oi.price, p.image
@@ -89,7 +89,7 @@ const getOrderById = async (req, res) => {
     res.json({ success: true, order });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch order" });
   }
 };
 

@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
+import { FaGoogle, FaFacebook, FaApple, FaEye, FaEyeSlash, FaSpinner } from "react-icons/fa";
+import { GoogleLogin } from '@react-oauth/google';
 
 const LoginPage = () => {
   const [mode, setMode] = useState("login");
@@ -13,6 +15,9 @@ const LoginPage = () => {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [wrongPasswordAttempted, setWrongPasswordAttempted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [forgotPasswordModal, setForgotPasswordModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -21,6 +26,7 @@ const LoginPage = () => {
   const [forgotPasswordStep, setForgotPasswordStep] = useState("email"); // "email", "otp", "reset"
   const [otpTimer, setOtpTimer] = useState(60); // 60 seconds
   const [canResend, setCanResend] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // New states for login/signup OTP flow
   const [authStep, setAuthStep] = useState("form"); // "form" or "otp"
@@ -28,13 +34,43 @@ const LoginPage = () => {
   const [authOtpTimer, setAuthOtpTimer] = useState(60);
   const [canResendAuthOtp, setCanResendAuthOtp] = useState(false);
   const authTimerRef = useRef(null);
+  const [selectedRole, setSelectedRole] = useState("owner");
   
   const timerRef = useRef(null);
   const navigate = useNavigate();
   const { token, setToken, backendUrl, role, setRole, guestLogin, guestLogout } = useContext(AuthContext);
 
+  const handleSocialClick = () => {
+    toast.error("Something went wrong with the social sign-in provider. Please try logging in with email instead.");
+  };
+
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    setIsLoading(true);
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/auth/google`, {
+        token: credentialResponse.credential,
+        role: selectedRole,
+      });
+
+      if (data.success) {
+        guestLogout();
+        setToken(data.token);
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", selectedRole);
+        setRole(selectedRole);
+        toast.success(data.message || "Login successful!");
+        navigate(`/${selectedRole}`);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Google Sign-In failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       if (mode === "signup") {
         // Send signup OTP
@@ -62,7 +98,7 @@ const LoginPage = () => {
         const { data } = await axios.post(`${backendUrl}/api/auth/send-login-otp`, {
           email,
           password,
-          role,
+          role: selectedRole,
         });
         if (data.success) {
           toast.success(data.message || "OTP sent to your email");
@@ -82,10 +118,13 @@ const LoginPage = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
       setWrongPasswordAttempted(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleVerifyAuthOtp = async () => {
+    setIsLoading(true);
     try {
       if (mode === "signup") {
         const { data } = await axios.post(`${backendUrl}/api/auth/verify-signup-otp`, {
@@ -98,7 +137,6 @@ const LoginPage = () => {
           localStorage.setItem("role", "consumer");
           guestLogout(); // Clear guest state if previously set
           setToken(data.token);
-          
           toast.success("Account created successfully!");
           navigate("/consumer");
         } else {
@@ -112,22 +150,26 @@ const LoginPage = () => {
         if (data.success) {
           setToken(data.token);
           localStorage.setItem("token", data.token);
-          localStorage.setItem("role", role);
+          localStorage.setItem("role", selectedRole);
+          setRole(selectedRole);
           guestLogout(); // Clear guest state
           toast.success("Login successful!");
-          navigate(`/${role}`);
+          navigate(`/${selectedRole}`);
         } else {
           toast.error(data.message);
         }
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleResendAuthOtp = async () => {
-    if (!canResendAuthOtp) return;
+    if (!canResendAuthOtp || isLoading) return;
     
+    setIsLoading(true);
     try {
       if (mode === "signup") {
         const { data } = await axios.post(`${backendUrl}/api/auth/send-signup-otp`, {
@@ -151,7 +193,7 @@ const LoginPage = () => {
         const { data } = await axios.post(`${backendUrl}/api/auth/send-login-otp`, {
           email,
           password,
-          role,
+          role: selectedRole,
         });
         if (data.success) {
           toast.success("OTP resent to your email");
@@ -166,6 +208,8 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -222,9 +266,11 @@ const LoginPage = () => {
   }, [authStep, authOtpTimer]);
 
   const handleForgotPasswordEmail = async () => {
+    setIsLoading(true);
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/forgot-password`, {
         email: forgotEmail,
+        role: selectedRole,
       });
       if (data.success) {
         toast.success("OTP sent to your email");
@@ -236,13 +282,18 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleResendOtp = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/forgot-password`, {
         email: forgotEmail,
+        role: selectedRole,
         resend: true,
       });
       if (data.success) {
@@ -255,10 +306,13 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to resend OTP");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
+    setIsLoading(true);
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/verify-otp`, {
         email: forgotEmail,
@@ -272,6 +326,8 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Invalid OTP");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -284,9 +340,11 @@ const LoginPage = () => {
       toast.error("Password must be at least 6 characters");
       return;
     }
+    setIsLoading(true);
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/reset-password`, {
         email: forgotEmail,
+        role: selectedRole,
         otp,
         newPassword,
       });
@@ -303,11 +361,20 @@ const LoginPage = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to reset password");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-[#FF8C00]/50 via-[#8A2BE2]/60 to-[#121212] text-[#F5F5F5] overflow-hidden">
+    <div className="relative w-full min-h-screen flex flex-col md:flex-row bg-[#0a0a0f] text-[#f0f0f5] overflow-hidden">
+      {/* Background blobs to match Home page */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-orange-500 opacity-[0.07] rounded-full blur-[120px] animate-float" />
+        <div className="absolute top-1/3 -right-20 w-[600px] h-[600px] bg-[#FF4B91] opacity-[0.06] rounded-full blur-[120px] animate-float-delayed" />
+        <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-[#8A2BE2] opacity-[0.06] rounded-full blur-[120px] animate-float" />
+      </div>
+
       {/* Left Brand Section */}
       <motion.div
         initial={{ opacity: 0, x: -60 }}
@@ -320,7 +387,7 @@ const LoginPage = () => {
           alt="Shop4Ever Logo"
           className="w-20 sm:w-28 md:w-52 lg:w-80 mb-4 drop-shadow-[0_0_20px_rgba(255,140,0,0.6)]"
         />
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C00] via-[#FF4B91] to-[#8A2BE2] animate-gradient-x drop-shadow-[0_0_15px_rgba(255,140,0,0.5)]">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-orange-500 via-[#FF4B91] to-[#8A2BE2] animate-gradient-x drop-shadow-[0_0_15px_rgba(255,140,0,0.5)]">
           Shop4Ever
         </h1>
         <p className="text-sm sm:text-base md:text-lg mt-4 max-w-md text-center text-gray-300 px-4">
@@ -333,10 +400,10 @@ const LoginPage = () => {
         initial={{ opacity: 0, x: 60 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 1 }}
-        className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-12"
+        className="relative z-10 flex-1 flex items-center justify-center p-4 sm:p-6 md:p-12"
       >
-        <div className="w-full max-w-md bg-[#2E2E2E]/70 backdrop-blur-xl p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl border border-[#FF8C00]/30">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-[#FF8C00]">
+        <div className="w-full max-w-md glass p-6 sm:p-8 md:p-10 rounded-3xl shadow-2xl">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-orange-500">
             {mode === "signup" ? "Create Account" : "Welcome Back"}
           </h2>
 
@@ -347,14 +414,14 @@ const LoginPage = () => {
                 key={r}
                 type="button"
                 onClick={() => {
-                  setRole(r);
+                  setSelectedRole(r);
                   setMode(r === "consumer" ? mode : "login");
                   setAuthStep("form");
                   setAuthOtp("");
                 }}
                 className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
-                  role === r
-                    ? "bg-[#FF8C00] text-black shadow-md"
+                  selectedRole === r
+                    ? "bg-orange-500 text-white shadow-md"
                     : "bg-[#1e1e1e] text-gray-300 hover:bg-[#2e2e2e]"
                 }`}
               >
@@ -367,7 +434,7 @@ const LoginPage = () => {
           {authStep === "otp" ? (
             <div className="space-y-4">
               <p className="text-gray-300 text-center mb-4">
-                Enter the OTP sent to <span className="font-semibold text-[#FF8C00]">{email}</span>
+                Enter the OTP sent to <span className="font-semibold text-orange-500">{email}</span>
               </p>
               <input
                 value={authOtp}
@@ -384,14 +451,14 @@ const LoginPage = () => {
                 {!canResendAuthOtp ? (
                   <p className="text-sm text-gray-400">
                     Resend OTP in{" "}
-                    <span className="text-[#FF8C00] font-semibold">
+                    <span className="text-orange-500 font-semibold">
                       {Math.floor(authOtpTimer / 60)}:{(authOtpTimer % 60).toString().padStart(2, "0")}
                     </span>
                   </p>
                 ) : (
                   <button
                     onClick={handleResendAuthOtp}
-                    className="text-sm text-[#FF8C00] hover:underline font-medium"
+                    className="text-sm text-orange-500 hover:underline font-medium"
                   >
                     Resend OTP
                   </button>
@@ -400,9 +467,10 @@ const LoginPage = () => {
 
               <button
                 onClick={handleVerifyAuthOtp}
-                className="w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
+                disabled={isLoading}
+                className={`w-full px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold shadow-xl transition-transform ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-[0_0_20px_rgba(255,140,0,0.3)] hover:scale-[1.02]'}`}
               >
-                Verify OTP
+                {isLoading ? <><FaSpinner className="animate-spin inline mr-2" /> Verifying...</> : "Verify OTP"}
               </button>
               
               <button
@@ -423,76 +491,144 @@ const LoginPage = () => {
             </div>
           ) : (
             /* Form Step */
-            <form className="space-y-3" onSubmit={handleSubmit}>
-              {role === "consumer" && mode === "signup" && (
-                <>
-                  <input
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    type="text"
-                    placeholder="First Name"
-                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                    required
-                  />
-                  <input
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    type="text"
-                    placeholder="Last Name"
-                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                    required
-                  />
-                  <input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    type="tel"
-                    placeholder="Phone Number"
-                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                    required
-                  />
-                </>
-              )}
+            <>
+              <form className="space-y-3" onSubmit={handleSubmit}>
+                {selectedRole === "consumer" && mode === "signup" && (
+                  <>
+                    <input
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      type="text"
+                      placeholder="First Name"
+                      className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                      required
+                    />
+                    <input
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      type="text"
+                      placeholder="Last Name"
+                      className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                      required
+                    />
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      type="tel"
+                      placeholder="Phone Number"
+                      className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                      required
+                    />
+                  </>
+                )}
 
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                type="email"
-                placeholder="Email"
-                className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                required
-              />
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                placeholder="Password"
-                className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                required
-              />
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  placeholder="Email"
+                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                  required
+                />
+                <div className="relative">
+                  <input
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    className="w-full px-4 py-3 pr-12 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                  </button>
+                </div>
+                {/* Password Strength Indicator (signup only) */}
+                {mode === "signup" && password && (
+                  <div className="space-y-1">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4].map((level) => {
+                        const strength = (password.length >= 6 ? 1 : 0) + (/[A-Z]/.test(password) ? 1 : 0) + (/[0-9]/.test(password) ? 1 : 0) + (/[^A-Za-z0-9]/.test(password) ? 1 : 0);
+                        const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500'];
+                        return <div key={level} className={`h-1 flex-1 rounded-full transition-colors ${level <= strength ? colors[strength - 1] : 'bg-gray-700'}`} />;
+                      })}
+                    </div>
+                    <p className="text-xs text-gray-500">Use uppercase, numbers & symbols for stronger password</p>
+                  </div>
+                )}
 
-              {wrongPasswordAttempted && mode === "login" && (
+                {mode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => setForgotPasswordModal(true)}
+                    className="text-sm text-orange-500 hover:underline text-right w-full"
+                  >
+                    Forgot Password?
+                  </button>
+                )}
+
                 <button
-                  type="button"
-                  onClick={() => setForgotPasswordModal(true)}
-                  className="text-sm text-[#FF8C00] hover:underline text-right w-full"
+                  type="submit"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 mt-2 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold shadow-xl transition-transform ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-[0_0_20px_rgba(255,140,0,0.3)] hover:scale-[1.02]'}`}
                 >
-                  Forgot Password?
+                  {isLoading ? (
+                    <><FaSpinner className="animate-spin inline mr-2" /> Loading...</>
+                  ) : mode === "signup"
+                    ? "Sign Up as Consumer"
+                    : `Login as ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}`}
                 </button>
-              )}
+              </form>
 
-              <button
-                type="submit"
-                className="w-full px-4 py-3 mt-2 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
-              >
-                {mode === "signup"
-                  ? "Sign Up as Consumer"
-                  : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
-              </button>
-            </form>
+              {/* Social Logins */}
+              <div className="mt-5">
+                <div className="relative flex items-center justify-center my-3 mb-5">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-600/40"></div>
+                  </div>
+                  <span className="relative px-3 bg-[#242424] text-xs text-gray-400 uppercase">
+                    Or continue with
+                  </span>
+                </div>
+
+                <div className="flex justify-center w-full">
+                  {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+                    <GoogleLogin
+                      onSuccess={handleGoogleLoginSuccess}
+                      onError={() => {
+                        toast.error("Google Sign-In was unsuccessful. Try again.");
+                      }}
+                      theme="filled_black"
+                      size="large"
+                      shape="pill"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toast.error(
+                          "Google Client ID is not configured. Please define VITE_GOOGLE_CLIENT_ID in your frontend .env file.",
+                          { autoClose: 5000 }
+                        );
+                      }}
+                      className="flex items-center justify-center gap-3 px-6 py-2.5 w-full max-w-[250px] rounded-full bg-[#1b1b1b] border border-gray-600 hover:bg-[#282828] text-sm font-semibold transition"
+                    >
+                      <FaGoogle className="text-red-500 text-lg" />
+                      <span>Sign in with Google</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
           )}
 
           {/* Toggle Mode */}
-          {role === "consumer" && authStep === "form" && (
+          {selectedRole === "consumer" && authStep === "form" && (
             <p className="text-center mt-4 text-sm text-gray-300">
               {mode === "login" ? (
                 <>
@@ -504,7 +640,7 @@ const LoginPage = () => {
                       setAuthStep("form");
                       setAuthOtp("");
                     }}
-                    className="text-[#FF8C00] font-medium hover:underline"
+                    className="text-orange-500 font-medium hover:underline"
                   >
                     Sign Up
                   </button>
@@ -519,7 +655,7 @@ const LoginPage = () => {
                       setAuthStep("form");
                       setAuthOtp("");
                     }}
-                    className="text-[#FF8C00] font-medium hover:underline"
+                    className="text-orange-500 font-medium hover:underline"
                   >
                     Login
                   </button>
@@ -571,7 +707,7 @@ const LoginPage = () => {
             className="bg-[#2E2E2E] rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full border border-[#FF8C00]/30 shadow-2xl"
           >
             <div className="flex justify-between items-center mb-4 sm:mb-6">
-              <h3 className="text-xl sm:text-2xl font-bold text-[#FF8C00]">Reset Password</h3>
+              <h3 className="text-xl sm:text-2xl font-bold text-orange-500">Reset Password</h3>
               <button
                 onClick={() => {
                   setForgotPasswordModal(false);
@@ -605,9 +741,10 @@ const LoginPage = () => {
                 />
                 <button
                   onClick={handleForgotPasswordEmail}
-                  className="w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 rounded-lg bg-orange-500 text-white font-semibold shadow-md transition-transform ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-orange-400 hover:scale-105'}`}
                 >
-                  Send OTP
+                  {isLoading ? <><FaSpinner className="animate-spin inline mr-2" /> Sending...</> : "Send OTP"}
                 </button>
               </div>
             )}
@@ -630,14 +767,14 @@ const LoginPage = () => {
                   {!canResend ? (
                     <p className="text-sm text-gray-400">
                       Resend OTP in{" "}
-                      <span className="text-[#FF8C00] font-semibold">
+                      <span className="text-orange-500 font-semibold">
                         {Math.floor(otpTimer / 60)}:{(otpTimer % 60).toString().padStart(2, "0")}
                       </span>
                     </p>
                   ) : (
                     <button
                       onClick={handleResendOtp}
-                      className="text-sm text-[#FF8C00] hover:underline font-medium"
+                      className="text-sm text-orange-500 hover:underline font-medium"
                     >
                       Resend OTP
                     </button>
@@ -646,9 +783,10 @@ const LoginPage = () => {
 
                 <button
                   onClick={handleVerifyOtp}
-                  className="w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 rounded-lg bg-orange-500 text-white font-semibold shadow-md transition-transform ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-orange-400 hover:scale-105'}`}
                 >
-                  Verify OTP
+                  {isLoading ? <><FaSpinner className="animate-spin inline mr-2" /> Verifying...</> : "Verify OTP"}
                 </button>
                 <button
                   onClick={() => {
@@ -669,27 +807,38 @@ const LoginPage = () => {
             {forgotPasswordStep === "reset" && (
               <div className="space-y-4">
                 <p className="text-gray-300 mb-4">Enter your new password</p>
-                <input
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  type="password"
-                  placeholder="New Password"
-                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                  required
-                />
-                <input
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  type="password"
-                  placeholder="Confirm Password"
-                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="New Password"
+                    className="w-full px-4 py-3 pr-12 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                    required
+                  />
+                  <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors" tabIndex={-1}>
+                    {showNewPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm Password"
+                    className="w-full px-4 py-3 pr-12 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40"
+                    required
+                  />
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors" tabIndex={-1}>
+                    {showConfirmPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                  </button>
+                </div>
                 <button
                   onClick={handleResetPassword}
-                  className="w-full px-4 py-3 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md transition-transform hover:scale-105"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 rounded-lg bg-orange-500 text-white font-semibold shadow-md transition-transform ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-orange-400 hover:scale-105'}`}
                 >
-                  Reset Password
+                  {isLoading ? <><FaSpinner className="animate-spin inline mr-2" /> Resetting...</> : "Reset Password"}
                 </button>
                 <button
                   onClick={() => setForgotPasswordStep("otp")}

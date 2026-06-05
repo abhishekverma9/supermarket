@@ -13,6 +13,7 @@ import {
   FaExclamationTriangle,
   FaCheckCircle,
   FaTag,
+  FaSpinner,
 } from "react-icons/fa";
 
 const OwnerProducts = () => {
@@ -20,6 +21,7 @@ const OwnerProducts = () => {
 
   const [editRow, setEditRow] = useState(null); // product_id being edited
   const [formData, setFormData] = useState({ value: "", description: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate statistics
   const stats = React.useMemo(() => {
@@ -45,6 +47,7 @@ const OwnerProducts = () => {
   };
 
   const handleSave = async (product_Id) => {
+    setIsSubmitting(true);
     try {
       const { data } = await axios.post(
         backendUrl + `/api/admin/update-discount/${product_Id}`,
@@ -60,6 +63,8 @@ const OwnerProducts = () => {
       }
     } catch (err) {
       toast.error(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -80,7 +85,7 @@ const OwnerProducts = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-4 sm:p-6 md:p-12">
+    <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -88,7 +93,7 @@ const OwnerProducts = () => {
         transition={{ duration: 0.7 }}
         className="mb-6 sm:mb-8"
       >
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 text-[#FF8C00] drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 text-orange-500 drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
           All Products
         </h2>
         <p className="text-gray-400 text-sm sm:text-base md:text-lg">
@@ -109,7 +114,7 @@ const OwnerProducts = () => {
               <p className="text-gray-400 text-sm mb-1">Total Products</p>
               <p className="text-3xl font-bold text-gray-100">{stats.totalProducts}</p>
             </div>
-            <div className="p-3 rounded-xl bg-[#FF8C00]/10 border border-[#FF8C00]/30 text-[#FF8C00]">
+            <div className="p-3 rounded-xl bg-orange-500/10 border border-[#FF8C00]/30 text-orange-500">
               <FaBoxes size={24} />
             </div>
           </div>
@@ -212,7 +217,7 @@ const OwnerProducts = () => {
                         ID: {p.product_id}
                       </span>
                       {p.discount_value && Number(p.discount_value) > 0 && (
-                        <span className="text-xs bg-[#FF8C00]/20 text-[#FF8C00] px-2 py-1 rounded border border-[#FF8C00]/30">
+                        <span className="text-xs bg-orange-500/20 text-orange-500 px-2 py-1 rounded border border-[#FF8C00]/30">
                           {p.discount_value}% OFF
                         </span>
                       )}
@@ -240,7 +245,7 @@ const OwnerProducts = () => {
                 {/* Price */}
                 <div className="mb-4">
                   <div className="flex items-center gap-2">
-                    <FaRupeeSign className="text-[#FF8C00]" size={18} />
+                    <FaRupeeSign className="text-orange-500" size={18} />
                     <span className="text-2xl font-bold text-gray-100">
                       ₹{Number(p.price).toFixed(2)}
                     </span>
@@ -309,12 +314,18 @@ const OwnerProducts = () => {
                     <div className="flex gap-3">
                       <motion.button
                         onClick={() => handleSave(p.product_id)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="flex-1 px-4 py-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/30 font-semibold flex items-center justify-center gap-2 transition-colors"
+                        disabled={isSubmitting}
+                        whileHover={!isSubmitting ? { scale: 1.05 } : {}}
+                        whileTap={!isSubmitting ? { scale: 0.95 } : {}}
+                        className={`flex-1 px-4 py-2 rounded-lg text-green-300 border border-green-500/30 font-semibold flex items-center justify-center gap-2 transition-colors ${
+                          isSubmitting ? "bg-green-500/10 opacity-50 cursor-not-allowed" : "bg-green-500/20 hover:bg-green-500/30"
+                        }`}
                       >
-                        <FaSave size={16} />
-                        Save
+                        {isSubmitting ? (
+                          <><FaSpinner className="animate-spin" /> Saving...</>
+                        ) : (
+                          <><FaSave size={16} /> Save</>
+                        )}
                       </motion.button>
                       <motion.button
                         onClick={handleCancel}
@@ -331,7 +342,7 @@ const OwnerProducts = () => {
                       onClick={() => handleEditClick(p)}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full px-4 py-2 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold flex items-center justify-center gap-2 transition-colors"
+                      className="w-full px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold flex items-center justify-center gap-2 transition-colors"
                     >
                       <FaEdit size={16} />
                       Edit Discount

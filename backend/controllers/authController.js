@@ -2,8 +2,10 @@ import bcrypt from "bcrypt";
 import { db } from "../config/db.js";
 import { generateToken } from "../utils/generateToken.js";
 import { generateOTP, storeOTP, verifyOTP, isOTPVerified, removeOTP, canResendOTP } from "../utils/otpStore.js";
-import { sendLoginOTPEmail, sendOTPEmail } from "../utils/emailService.js";
+import { sendLoginOTPEmail, sendOTPEmail, sendSignupOTPEmail } from "../utils/emailService.js";
 import { storeAuthSession, getAuthSession, removeAuthSession } from "../utils/authSessionStore.js";
+import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 
 // ---------------------------
 // Signup (Consumer only)
@@ -13,7 +15,7 @@ const signupConsumer = async (req, res) => {
     const { first_name, last_name, email, phone, password } = req.body;
 
     if (!first_name || !email || !password) {
-      return res.json({ success: false, message: "Missing required fields" });
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
     // Check if consumer already exists
@@ -22,7 +24,7 @@ const signupConsumer = async (req, res) => {
       [email]
     );
     if (existingConsumer.length > 0) {
-      return res.json({ success: false, message: "User already exists" });
+      return res.status(409).json({ success: false, message: "User already exists" });
     }
 
     // Hash password
@@ -37,7 +39,7 @@ const signupConsumer = async (req, res) => {
 
     const token = generateToken({ id: result.insertId, role: "consumer" });
 
-    return res.json({
+    return res.status(201).json({
       success: true,
       message: "Account created successfully",
       consumer_id: result.insertId,
@@ -45,7 +47,7 @@ const signupConsumer = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -56,7 +58,7 @@ const login = async (req, res) => {
   try {
     const { email, password, role } = req.body;
     if (!email || !password || !role) {
-      return res.json({ success: false, message: "Email, password, and role are required" });
+      return res.status(400).json({ success: false, message: "Email, password, and role are required" });
     }
 
     let tableName;
@@ -72,13 +74,13 @@ const login = async (req, res) => {
       idField = "consumer_id";
       nameField = "first_name";
     } else {
-      return res.json({ success: false, message: "Invalid role" });
+      return res.status(400).json({ success: false, message: "Invalid role" });
     }
 
     // Query user
     const [rows] = await db().query(`SELECT * FROM ${tableName} WHERE email = ?`, [email]);
     if (rows.length === 0) {
-      return res.json({ success: false, message: "User does not exist" });
+      return res.status(404).json({ success: false, message: "User does not exist" });
     }
 
     const user = rows[0];
@@ -86,21 +88,19 @@ const login = async (req, res) => {
     // Check role for employee/owner
     if (tableName === "Employee") {
       if (role === "owner" && user.role.toLowerCase() !== "admin") {
-        return res.json({ success: false, message: "Not an Owner" });
+        return res.status(403).json({ success: false, message: "Not an Owner" });
       }
       if (role === "employee" && user.role.toLowerCase() !== "employee" && user.role.toLowerCase() !== "manager") {
-        return res.json({ success: false, message: "Not an Employee" });
+        return res.status(403).json({ success: false, message: "Not an Employee" });
       }
 
     }
 
     // Check password
-    // For consumer, you might still want bcrypt.compare
     const valid = await bcrypt.compare(password, user.password)
-    // const valid = password === user.password ? true : false
 
     if (!valid) {
-      return res.json({ success: false, message: "Invalid credentials" });
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
     const token = generateToken({ id: user[idField], role });
@@ -116,7 +116,7 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -125,67 +125,69 @@ const login = async (req, res) => {
 // ---------------------------
 const forgotPassword = async (req, res) => {
   try {
-    const { email, resend } = req.body; 
-    if (!email) {
-      return res.json({ success: false, message: "Email is required" });
+    const { email, resend, role } = req.body; 
+    if (!email || !role) {
+      return res.status(400).json({ success: false, message: "Email and role are required" });
     }
 
     // Check resend cooldown (1 minute)
     if (resend) {
-      if (!canResendOTP(email)) {
-        return res.json({
+      const canResend = await canResendOTP(email);
+      if (!canResend) {
+        return res.status(429).json({
           success: false,
           message: "Please wait 1 minute before requesting a new OTP",
         });
       }
     }
 
-    // Check if user exists (check both Consumers and Employee tables)
     let user = null;
-    let tableName = null;
+    let tableName = "";
 
-    // Check Consumers table
-    const [consumers] = await db().query(
-      "SELECT * FROM Consumers WHERE email = ?",
-      [email]
-    );
-
-    if (consumers.length > 0) {
-      user = consumers[0];
+    if (role === "consumer") {
       tableName = "Consumers";
+    } else if (role === "employee" || role === "owner") {
+      tableName = "Employee";
     } else {
-      // Check Employee table
-      const [employees] = await db().query(
-        "SELECT * FROM Employee WHERE email = ?",
-        [email]
-      );
+      return res.status(400).json({ success: false, message: "Invalid role" });
+    }
 
-      if (employees.length > 0) {
-        user = employees[0];
-        tableName = "Employee";
+    const [rows] = await db().query(`SELECT * FROM ${tableName} WHERE email = ?`, [email]);
+    
+    if (rows.length > 0) {
+      user = rows[0];
+      
+      // Role validation for employees/owners
+      if (tableName === "Employee") {
+        if (role === "owner" && user.role.toLowerCase() !== "admin") {
+          return res.status(403).json({ success: false, message: "Not an Owner" });
+        }
+        if (role === "employee" && user.role.toLowerCase() !== "employee" && user.role.toLowerCase() !== "manager") {
+          return res.status(403).json({ success: false, message: "Not an Employee" });
+        }
       }
     }
 
     if (!user) { 
-      return res.json({success: false,message: "User not found"});
+      return res.status(404).json({success: false,message: "User not found"});
     }
 
     // Generate and store OTP
     const otp = generateOTP();
-    storeOTP(email, otp); 
+    await storeOTP(email, otp); 
     // Send OTP via email
     const emailResult = await sendOTPEmail(email, otp);
 
     if (!emailResult.success) { 
-      // In development, return OTP in response for testing
+      // In development, log OTP to console only (never in API response)
       if (process.env.NODE_ENV === "development") {
+        console.log(`[DEV] OTP for ${email}: ${otp}`);
         return res.json({
           success: true,
           message: "OTP generated (email sending failed - check console)",
-          otp: otp, // Only in development
         });
       }
-      return res.json({
+      return res.status(500).json({
         success: false,
         message: "Failed to send email. Please try again later.",
       });
@@ -197,7 +199,7 @@ const forgotPassword = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -209,13 +211,13 @@ const verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-      return res.json({ success: false, message: "Email and OTP are required" });
+      return res.status(400).json({ success: false, message: "Email and OTP are required" });
     }
 
-    const verification = verifyOTP(email, otp);
+    const verification = await verifyOTP(email, otp);
 
     if (!verification.valid) {
-      return res.json({ success: false, message: verification.message });
+      return res.status(400).json({ success: false, message: verification.message });
     }
 
     return res.json({
@@ -224,7 +226,7 @@ const verifyOtp = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -233,61 +235,50 @@ const verifyOtp = async (req, res) => {
 // ---------------------------
 const resetPassword = async (req, res) => {
   try {
-    const { email, otp, newPassword } = req.body;
+    const { email, otp, newPassword, role } = req.body;
 
-    if (!email || !otp || !newPassword) {
-      return res.json({
+    if (!email || !otp || !newPassword || !role) {
+      return res.status(400).json({
         success: false,
-        message: "Email, OTP, and new password are required",
+        message: "Email, OTP, new password, and role are required",
       });
     }
 
     if (newPassword.length < 6) {
-      return res.json({
+      return res.status(400).json({
         success: false,
         message: "Password must be at least 6 characters",
       });
     }
 
     // Verify OTP first
-    if (!isOTPVerified(email)) {
-      const verification = verifyOTP(email, otp);
+    const isVerified = await isOTPVerified(email);
+    if (!isVerified) {
+      const verification = await verifyOTP(email, otp);
       if (!verification.valid) {
-        return res.json({ success: false, message: verification.message });
+        return res.status(400).json({ success: false, message: verification.message });
       }
     }
 
-    // Find user
     let user = null;
-    let tableName = null;
-    let idField = null;
+    let tableName = "";
 
-    // Check Consumers table
-    const [consumers] = await db().query(
-      "SELECT * FROM Consumers WHERE email = ?",
-      [email]
-    );
-
-    if (consumers.length > 0) {
-      user = consumers[0];
+    if (role === "consumer") {
       tableName = "Consumers";
-      idField = "consumer_id";
+    } else if (role === "employee" || role === "owner") {
+      tableName = "Employee";
     } else {
-      // Check Employee table
-      const [employees] = await db().query(
-        "SELECT * FROM Employee WHERE email = ?",
-        [email]
-      );
+      return res.status(400).json({ success: false, message: "Invalid role" });
+    }
 
-      if (employees.length > 0) {
-        user = employees[0];
-        tableName = "Employee";
-        idField = "employee_id";
-      }
+    const [rows] = await db().query(`SELECT * FROM ${tableName} WHERE email = ?`, [email]);
+    
+    if (rows.length > 0) {
+      user = rows[0];
     }
 
     if (!user) {
-      return res.json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     // Hash new password
@@ -300,7 +291,7 @@ const resetPassword = async (req, res) => {
     );
 
     // Remove OTP after successful password reset
-    removeOTP(email);
+    await removeOTP(email);
 
     return res.json({
       success: true,
@@ -308,7 +299,7 @@ const resetPassword = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -319,7 +310,7 @@ const sendLoginOtp = async (req, res) => {
   try {
     const { email, password, role } = req.body;
     if (!email || !password || !role) {
-      return res.json({ success: false, message: "Email, password, and role are required" });
+      return res.status(400).json({ success: false, message: "Email, password, and role are required" });
     }
 
     let tableName;
@@ -335,13 +326,13 @@ const sendLoginOtp = async (req, res) => {
       idField = "consumer_id";
       nameField = "first_name";
     } else {
-      return res.json({ success: false, message: "Invalid role" });
+      return res.status(400).json({ success: false, message: "Invalid role" });
     }
 
     // Query user
     const [rows] = await db().query(`SELECT * FROM ${tableName} WHERE email = ?`, [email]);
     if (rows.length === 0) {
-      return res.json({ success: false, message: "User does not exist" });
+      return res.status(404).json({ success: false, message: "User does not exist" });
     }
 
     const user = rows[0];
@@ -349,25 +340,25 @@ const sendLoginOtp = async (req, res) => {
     // Check role for employee/owner
     if (tableName === "Employee") {
       if (role === "owner" && user.role.toLowerCase() !== "admin") {
-        return res.json({ success: false, message: "Not an Owner" });
+        return res.status(403).json({ success: false, message: "Not an Owner" });
       }
       if (role === "employee" && user.role.toLowerCase() !== "employee" && user.role.toLowerCase() !== "manager") {
-        return res.json({ success: false, message: "Not an Employee" });
+        return res.status(403).json({ success: false, message: "Not an Employee" });
       }
     }
 
     // Check password
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-      return res.json({ success: false, message: "Invalid credentials" });
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
     // Generate and store OTP
     const otp = generateOTP();
-    storeOTP(email, otp);
+    await storeOTP(email, otp);
 
     // Store auth session data
-    storeAuthSession(email, "login", {
+    await storeAuthSession(email, "login", {
       userId: user[idField],
       role,
       name: user[nameField],
@@ -377,15 +368,15 @@ const sendLoginOtp = async (req, res) => {
     const emailResult = await sendLoginOTPEmail(email, otp);
 
     if (!emailResult.success) {
-      // In development, return OTP in response for testing
+      // In development, log OTP to console only (never in API response)
       if (process.env.NODE_ENV === "development") {
+        console.log(`[DEV] Login OTP for ${email}: ${otp}`);
         return res.json({
           success: true,
           message: "OTP generated (email sending failed - check console)",
-          otp: otp, // Only in development
         });
       }
-      return res.json({
+      return res.status(500).json({
         success: false,
         message: "Failed to send email. Please try again later.",
       });
@@ -398,7 +389,7 @@ const sendLoginOtp = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -410,27 +401,27 @@ const verifyLoginOtp = async (req, res) => {
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-      return res.json({ success: false, message: "Email and OTP are required" });
+      return res.status(400).json({ success: false, message: "Email and OTP are required" });
     }
 
     // Verify OTP
-    const verification = verifyOTP(email, otp);
+    const verification = await verifyOTP(email, otp);
     if (!verification.valid) {
-      return res.json({ success: false, message: verification.message });
+      return res.status(400).json({ success: false, message: verification.message });
     }
 
     // Get auth session
-    const session = getAuthSession(email);
+    const session = await getAuthSession(email);
     if (!session || session.type !== "login") {
-      return res.json({ success: false, message: "Session expired. Please login again." });
+      return res.status(401).json({ success: false, message: "Session expired. Please login again." });
     }
 
     // Generate token
     const token = generateToken({ id: session.data.userId, role: session.data.role });
 
     // Clean up
-    removeOTP(email);
-    removeAuthSession(email);
+    await removeOTP(email);
+    await removeAuthSession(email);
 
     return res.json({
       success: true,
@@ -443,7 +434,7 @@ const verifyLoginOtp = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -455,7 +446,7 @@ const sendSignupOtp = async (req, res) => {
     const { first_name, last_name, email, phone, password } = req.body;
 
     if (!first_name || !email || !password) {
-      return res.json({ success: false, message: "Missing required fields" });
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
     // Check if consumer already exists
@@ -464,16 +455,16 @@ const sendSignupOtp = async (req, res) => {
       [email]
     );
     if (existingConsumer.length > 0) {
-      return res.json({ success: false, message: "User already exists" });
+      return res.status(409).json({ success: false, message: "User already exists" });
     }
 
     // Generate and store OTP
     const otp = generateOTP();
-    storeOTP(email, otp);
+    await storeOTP(email, otp);
 
     // Store signup session data (hash password before storing)
     const hashedPassword = await bcrypt.hash(password, 10);
-    storeAuthSession(email, "signup", {
+    await storeAuthSession(email, "signup", {
       first_name,
       last_name,
       email,
@@ -482,18 +473,18 @@ const sendSignupOtp = async (req, res) => {
     });
 
     // Send OTP via email
-    const emailResult = await sendOTPEmail(email, otp);
+    const emailResult = await sendSignupOTPEmail(email, otp);
 
     if (!emailResult.success) {
-      // In development, return OTP in response for testing
+      // In development, log OTP to console only (never in API response)
       if (process.env.NODE_ENV === "development") {
+        console.log(`[DEV] Signup OTP for ${email}: ${otp}`);
         return res.json({
           success: true,
           message: "OTP generated (email sending failed - check console)",
-          otp: otp, // Only in development
         });
       }
-      return res.json({
+      return res.status(500).json({
         success: false,
         message: "Failed to send email. Please try again later.",
       });
@@ -506,7 +497,7 @@ const sendSignupOtp = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -518,19 +509,19 @@ const verifySignupOtp = async (req, res) => {
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-      return res.json({ success: false, message: "Email and OTP are required" });
+      return res.status(400).json({ success: false, message: "Email and OTP are required" });
     }
 
     // Verify OTP
-    const verification = verifyOTP(email, otp);
+    const verification = await verifyOTP(email, otp);
     if (!verification.valid) {
-      return res.json({ success: false, message: verification.message });
+      return res.status(400).json({ success: false, message: verification.message });
     }
 
     // Get signup session
-    const session = getAuthSession(email);
+    const session = await getAuthSession(email);
     if (!session || session.type !== "signup") {
-      return res.json({ success: false, message: "Session expired. Please signup again." });
+      return res.status(401).json({ success: false, message: "Session expired. Please signup again." });
     }
 
     // Check if user was created in the meantime
@@ -539,9 +530,9 @@ const verifySignupOtp = async (req, res) => {
       [email]
     );
     if (existingConsumer.length > 0) {
-      removeOTP(email);
-      removeAuthSession(email);
-      return res.json({ success: false, message: "User already exists" });
+      await removeOTP(email);
+      await removeAuthSession(email);
+      return res.status(409).json({ success: false, message: "User already exists" });
     }
 
     // Insert new consumer
@@ -560,10 +551,10 @@ const verifySignupOtp = async (req, res) => {
     const token = generateToken({ id: result.insertId, role: "consumer" });
 
     // Clean up
-    removeOTP(email);
-    removeAuthSession(email);
+    await removeOTP(email);
+    await removeAuthSession(email);
 
-    return res.json({
+    return res.status(201).json({
       success: true,
       message: "Account created successfully",
       consumer_id: result.insertId,
@@ -571,8 +562,109 @@ const verifySignupOtp = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
-export { signupConsumer, login, forgotPassword, verifyOtp, resetPassword, sendLoginOtp, verifyLoginOtp, sendSignupOtp, verifySignupOtp };
+// ---------------------------
+// Google Login / Signup
+// ---------------------------
+const googleLogin = async (req, res) => {
+  try {
+    const { token, role } = req.body;
+    if (!token || !role) {
+      return res.status(400).json({ success: false, message: "Token and role are required" });
+    }
+
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (err) {
+      console.error("Google token verification failed:", err);
+      return res.status(401).json({ success: false, message: "Invalid Google token" });
+    }
+
+    const email = payload.email;
+    const firstName = payload.given_name || "Google";
+    const lastName = payload.family_name || "User";
+
+    if (role === "consumer") {
+      // Check Consumers table
+      const [existingConsumer] = await db().query(
+        "SELECT * FROM Consumers WHERE email = ?",
+        [email]
+      );
+
+      if (existingConsumer.length > 0) {
+        // Log them in
+        const user = existingConsumer[0];
+        const jwtToken = generateToken({ id: user.consumer_id, role: "consumer" });
+        return res.json({
+          success: true,
+          message: "Login successful",
+          token: jwtToken,
+          user: { id: user.consumer_id, name: user.first_name, role: "consumer" },
+        });
+      } else {
+        // Create new consumer account
+        const randomPassword = crypto.randomBytes(16).toString('hex');
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+        
+        const [result] = await db().query(
+          `INSERT INTO Consumers (first_name, last_name, email, phone, password)
+           VALUES (?, ?, ?, ?, ?)`,
+          [firstName, lastName, email, "", hashedPassword]
+        );
+
+        const jwtToken = generateToken({ id: result.insertId, role: "consumer" });
+        return res.status(201).json({
+          success: true,
+          message: "Account created successfully",
+          token: jwtToken,
+          user: { id: result.insertId, name: firstName, role: "consumer" },
+        });
+      }
+    } else if (role === "employee" || role === "owner") {
+      // Check Employee table
+      const [existingEmployee] = await db().query(
+        "SELECT * FROM Employee WHERE email = ?",
+        [email]
+      );
+
+      if (existingEmployee.length > 0) {
+        const user = existingEmployee[0];
+        
+        // Verify role constraints
+        if (role === "owner" && user.role.toLowerCase() !== "admin") {
+          return res.status(403).json({ success: false, message: "Not an Owner" });
+        }
+        if (role === "employee" && user.role.toLowerCase() !== "employee" && user.role.toLowerCase() !== "manager") {
+          return res.status(403).json({ success: false, message: "Not an Employee" });
+        }
+
+        const jwtToken = generateToken({ id: user.employee_id, role });
+        return res.json({
+          success: true,
+          message: "Login successful",
+          token: jwtToken,
+          user: { id: user.employee_id, name: user.first_name, role },
+        });
+      } else {
+        // Do NOT auto-create employees
+        return res.status(403).json({ success: false, message: "Unauthorized: Email not registered as Employee" });
+      }
+    } else {
+      return res.status(400).json({ success: false, message: "Invalid role" });
+    }
+  } catch (error) {
+    console.error("Google Login Error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export { signupConsumer, login, forgotPassword, verifyOtp, resetPassword, sendLoginOtp, verifyLoginOtp, sendSignupOtp, verifySignupOtp, googleLogin };

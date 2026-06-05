@@ -14,7 +14,7 @@ const getAllOrders = async (req, res) => {
     `);
 
     if (orders.length === 0) {
-      return res.json({ success: false, message: "No orders found" });
+      return res.json({ success: true, message: "No orders found", count: 0, orders: [] });
     }
 
     // 2️⃣ Fetch items for all orders
@@ -43,7 +43,7 @@ const getAllOrders = async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch orders" });
   }
 };
 // ✅ Update order status controller
@@ -55,11 +55,11 @@ const updateOrderStatus = async (req, res) => {
     const validStatuses = ["Pending","Confirmed", "Shipped", "Out for Delivery", "Delivered", "Cancelled" ];
 
     if (!order_id) {
-      return res.json({ success: false, message: "Order ID is required" });
+      return res.status(400).json({ success: false, message: "Order ID is required" });
     }
 
     if (!status || !validStatuses.includes(status)) {
-      return res.json({ success: false, message: "Invalid status value" });
+      return res.status(400).json({ success: false, message: "Invalid status value" });
     }
 
     // 1️⃣ FETCH FULL ORDER DETAILS (email, items, delivery)
@@ -68,7 +68,7 @@ const updateOrderStatus = async (req, res) => {
       [order_id]
     );
 
-    if (!order) return res.json({ success: false, message: "Order not found" });
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
 
     const [[consumer]] = await db().query(
       "SELECT email FROM Consumers WHERE consumer_id = ?",
@@ -101,41 +101,58 @@ const updateOrderStatus = async (req, res) => {
       order_id,
     ]);
 
+    // RESTORE STOCK ON CANCELLATION
+    // Since the database trigger only runs on DELETE from Order_Items,
+    // we must manually restore stock when an order is simply marked as "Cancelled".
+    if (status === "Cancelled" && order.status !== "Cancelled") {
+      for (const item of items) {
+        await db().query(
+          "UPDATE Product SET stock_quantity = stock_quantity + ? WHERE product_id = ?",
+          [item.quantity, item.product_id]
+        );
+      }
+    }
+
     // 3️⃣ SEND EMAIL BASED ON STATUS
-    switch (status) {
-      case "Out for Delivery":
-        await sendOutForDeliveryEmail(consumer.email, fullOrder);
-        break;
+    try {
+      switch (status) {
+        case "Out for Delivery":
+          await sendOutForDeliveryEmail(consumer.email, fullOrder);
+          break;
 
-      case "Delivered":
-        await sendOrderDeliveredEmail(consumer.email, fullOrder);
-        break;
+        case "Delivered":
+          await sendOrderDeliveredEmail(consumer.email, fullOrder);
+          break;
 
-      case "Cancelled":
-        await sendOrderCancellationEmail(consumer.email, fullOrder);
-        break;
+        case "Cancelled":
+          await sendOrderCancellationEmail(consumer.email, fullOrder);
+          break;
 
-      default: 
-        break;
+        default: 
+          break;
+      }
+    } catch (emailError) {
+      // Email failure should not fail the status update
+      console.warn("⚠️ Status updated but email sending failed:", emailError.message);
     }
 
     return res.json({
       success: true,
-      message: `Order status updated to ${status} and email sent.`,
+      message: `Order status updated to ${status}`,
       order_id,
       status,
     });
 
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to update order status" });
   }
 };
 const getEmpProfile = async (req, res) => {
   try {
     const employeeId = req.userId; // from auth middleware
     if (!employeeId) {
-      return res.json({ success: false, message: "Unauthorized" });
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
     const [rows] = await db().query(
       `SELECT employee_id, first_name, last_name, phone, email, role, profile_photo,created_at
@@ -144,12 +161,12 @@ const getEmpProfile = async (req, res) => {
       [employeeId]
     );
     if (rows.length === 0) {
-      return res.json({ success: false, message: "Employee not found" });
+      return res.status(404).json({ success: false, message: "Employee not found" });
     }
     res.json({ success: true, employee: rows[0] });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch profile" });
   }
 }
 const updateEmpProfile = async (req, res) => {
@@ -157,7 +174,7 @@ const updateEmpProfile = async (req, res) => {
     const employeeId = req.userId; // from auth middleware
     const { first_name, last_name, phone } = req.body;
     if (!employeeId) {
-      return res.json({ success: false, message: "Unauthorized" });
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
     let profilePhotoUrl = null;
     if (req.file) {
@@ -175,7 +192,7 @@ const updateEmpProfile = async (req, res) => {
     if (phone) { fields.push("phone = ?"); values.push(phone); }
     if (profilePhotoUrl) { fields.push("profile_photo = ?"); values.push(profilePhotoUrl); }
     if (fields.length === 0) {
-      return res.json({ success: false, message: "No fields to update" });
+      return res.status(400).json({ success: false, message: "No fields to update" });
     }
     values.push(employeeId);
     await db().query(
@@ -185,7 +202,7 @@ const updateEmpProfile = async (req, res) => {
     res.json({ success: true, message: "Profile updated successfully" });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to update profile" });
   }
 }
 const getTeamMember = async (req, res) => {
@@ -203,7 +220,7 @@ const getTeamMember = async (req, res) => {
     res.json({ success: true, employees });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch team members" });
   }
 }
 export { getAllOrders, updateOrderStatus, getEmpProfile, updateEmpProfile, getTeamMember }

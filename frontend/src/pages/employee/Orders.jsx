@@ -26,7 +26,7 @@ const AllOrders = () => {
   }, [allOrders]);
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-4 sm:p-6 md:p-12">
+    <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -34,7 +34,7 @@ const AllOrders = () => {
         transition={{ duration: 0.7 }}
         className="mb-6 sm:mb-8"
       >
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 text-[#FF8C00] drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 text-orange-500 drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
           All Orders
         </h2>
         <p className="text-gray-400 text-sm sm:text-base md:text-lg">
@@ -51,7 +51,7 @@ const AllOrders = () => {
           className="bg-gradient-to-br from-[#1C1C1C] to-[#2E2E2E] border border-[#FF8C00]/30 rounded-2xl p-4 shadow-[0_0_15px_rgba(255,140,0,0.2)]"
         >
           <div className="flex flex-col items-center text-center">
-            <div className="p-2 rounded-xl bg-[#FF8C00]/10 border border-[#FF8C00]/30 text-[#FF8C00] mb-2">
+            <div className="p-2 rounded-xl bg-orange-500/10 border border-[#FF8C00]/30 text-orange-500 mb-2">
               <FaShoppingBag size={20} />
             </div>
             <p className="text-gray-400 text-xs mb-1">Total</p>

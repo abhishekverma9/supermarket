@@ -1,7 +1,7 @@
 import axios from "axios";
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { FaTrash, FaEdit, FaSave, FaUserPlus } from "react-icons/fa";
+import { FaTrash, FaEdit, FaSave, FaUserPlus, FaSpinner } from "react-icons/fa";
 import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 
@@ -11,6 +11,8 @@ const OwnerEmployees = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({ salary: "", manager_id: "" });
+  const [isDeletingId, setIsDeletingId] = useState(null);
+  const [isSavingId, setIsSavingId] = useState(null);
 
   const totalSalary = useMemo(() => {
     return employees.reduce((sum, o) => sum + Number(o.salary), 0);
@@ -79,6 +81,7 @@ const OwnerEmployees = () => {
 
   // Delete Employee
   const handleDelete = async (employee_id) => {
+    setIsDeletingId(employee_id);
     try {
       const { data } = await axios.post(
         `${backendUrl}/api/admin/delete/${employee_id}`,
@@ -91,6 +94,8 @@ const OwnerEmployees = () => {
       } else toast.error(data.message);
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setIsDeletingId(null);
     }
   };
 
@@ -101,6 +106,7 @@ const OwnerEmployees = () => {
   };
 
   const handleSave = async (employee_id) => {
+    setIsSavingId(employee_id);
     try {
       const { data } = await axios.post(
         `${backendUrl}/api/admin/update/${employee_id}`,
@@ -114,6 +120,8 @@ const OwnerEmployees = () => {
       } else toast.error(data.message);
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setIsSavingId(null);
     }
   };
 
@@ -122,7 +130,7 @@ const OwnerEmployees = () => {
   }, [token, role]);
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-8">
+    <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -130,7 +138,7 @@ const OwnerEmployees = () => {
         transition={{ duration: 0.6 }}
         className="mb-8"
       >
-        <h2 className="text-4xl font-extrabold text-[#FF8C00]">
+        <h2 className="text-4xl font-extrabold text-orange-500">
   Manage Employees
 </h2>
         <p className="text-gray-400 mt-2">Add, edit, or remove employee records</p>
@@ -143,7 +151,7 @@ const OwnerEmployees = () => {
         transition={{ delay: 0.3 }}
         className="p-6 mb-10 rounded-2xl bg-[#2E2E2E]/70 border border-[#FF8C00]/20 shadow-xl backdrop-blur-sm"
       >
-        <h3 className="text-xl font-semibold flex items-center gap-2 text-[#FF8C00] mb-4">
+        <h3 className="text-xl font-semibold flex items-center gap-2 text-orange-500 mb-4">
           <FaUserPlus /> Add New Employee
         </h3>
         <form onSubmit={handleSubmit} className="flex flex-wrap gap-4">
@@ -189,14 +197,14 @@ const OwnerEmployees = () => {
 
           <button
             type="submit"
-            className={`px-5 py-2 rounded-lg text-black font-semibold transition-transform hover:scale-105 ${
+            className={`px-5 py-2 rounded-lg text-white font-semibold transition-transform hover:scale-105 flex items-center justify-center gap-2 ${
               isSubmitting
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-[#FF8C00] hover:bg-[#ffa733]"
+                ? "bg-gray-400 cursor-not-allowed opacity-70"
+                : "bg-orange-500 hover:bg-orange-400"
             }`}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Adding..." : "Add"}
+            {isSubmitting ? <><FaSpinner className="animate-spin" /> Adding...</> : "Add"}
           </button>
         </form>
       </motion.div>
@@ -209,7 +217,7 @@ const OwnerEmployees = () => {
         className="overflow-x-auto bg-[#2E2E2E]/70 border border-[#FF8C00]/20 rounded-2xl shadow-lg"
       >
         <table className="w-full text-sm">
-          <thead className="bg-[#1a1a1a] text-[#FF8C00] uppercase tracking-wide">
+          <thead className="bg-[#1a1a1a] text-orange-500 uppercase tracking-wide">
             <tr>
               <th className="px-4 py-3 text-left">Profile</th>
               <th className="px-4 py-3 text-left">Emp ID</th>
@@ -281,9 +289,10 @@ const OwnerEmployees = () => {
                   {editingId === emp.employee_id ? (
                     <button
                       onClick={() => handleSave(emp.employee_id)}
-                      className="text-green-500 hover:text-green-400"
+                      disabled={isSavingId === emp.employee_id}
+                      className={`transition-colors ${isSavingId === emp.employee_id ? "text-gray-500 cursor-not-allowed" : "text-green-500 hover:text-green-400"}`}
                     >
-                      <FaSave />
+                      {isSavingId === emp.employee_id ? <FaSpinner className="animate-spin" /> : <FaSave />}
                     </button>
                   ) : (
                     <button
@@ -295,9 +304,10 @@ const OwnerEmployees = () => {
                   )}
                   <button
                     onClick={() => handleDelete(emp.employee_id)}
-                    className="text-red-500 hover:text-red-400"
+                    disabled={isDeletingId === emp.employee_id}
+                    className={`transition-colors ${isDeletingId === emp.employee_id ? "text-gray-500 cursor-not-allowed" : "text-red-500 hover:text-red-400"}`}
                   >
-                    <FaTrash />
+                    {isDeletingId === emp.employee_id ? <FaSpinner className="animate-spin" /> : <FaTrash />}
                   </button>
                 </td>
               </tr>
@@ -314,7 +324,7 @@ const OwnerEmployees = () => {
         className="mt-8 p-6 bg-[#2E2E2E]/70 border border-[#FF8C00]/20 rounded-2xl shadow-xl flex justify-between items-center"
       >
         <h3 className="text-xl font-semibold text-gray-300">Total Salary Paid</h3>
-        <span className="text-2xl font-bold text-[#FF8C00]">
+        <span className="text-2xl font-bold text-orange-500">
           ₹{totalSalary.toFixed(2)}
         </span>
       </motion.div>

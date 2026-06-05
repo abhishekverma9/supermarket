@@ -12,6 +12,7 @@ import {
   FaRupeeSign,
   FaWarehouse,
   FaCalendarAlt,
+  FaSpinner,
 } from "react-icons/fa";
 
 const AddProduct = () => {
@@ -73,7 +74,7 @@ const AddProduct = () => {
     "w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40 outline-none transition-all duration-200";
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-6 md:p-12 flex justify-center items-start">
+    <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6 flex justify-center items-start">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -82,7 +83,7 @@ const AddProduct = () => {
       >
         {/* Header */}
         <div className="mb-8 text-center">
-          <h2 className="text-4xl font-extrabold mb-2 text-[#FF8C00] drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
+          <h2 className="text-4xl font-extrabold mb-2 text-orange-500 drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
             Add New Product
           </h2>
           <p className="text-gray-400 text-lg">
@@ -101,7 +102,7 @@ const AddProduct = () => {
             {/* Product Name */}
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
-                <FaTag className="text-[#FF8C00]" />
+                <FaTag className="text-orange-500" />
                 Product Name
               </label>
               <input
@@ -117,7 +118,7 @@ const AddProduct = () => {
             {/* Description */}
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
-                <FaBox className="text-[#FF8C00]" />
+                <FaBox className="text-orange-500" />
                 Description
               </label>
               <textarea
@@ -134,7 +135,7 @@ const AddProduct = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
-                  <FaLayerGroup className="text-[#FF8C00]" />
+                  <FaLayerGroup className="text-orange-500" />
                   Category
                 </label>
                 <input
@@ -149,7 +150,7 @@ const AddProduct = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
-                  <FaRupeeSign className="text-[#FF8C00]" />
+                  <FaRupeeSign className="text-orange-500" />
                   Price (₹)
                 </label>
                 <input
@@ -169,7 +170,7 @@ const AddProduct = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
-                  <FaWarehouse className="text-[#FF8C00]" />
+                  <FaWarehouse className="text-orange-500" />
                   Stock Quantity
                 </label>
                 <input
@@ -185,7 +186,7 @@ const AddProduct = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
-                  <FaCalendarAlt className="text-[#FF8C00]" />
+                  <FaCalendarAlt className="text-orange-500" />
                   Expiry Date (Optional)
                 </label>
                 <input
@@ -200,7 +201,7 @@ const AddProduct = () => {
             {/* Image Upload */}
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
-                <FaImage className="text-[#FF8C00]" />
+                <FaImage className="text-orange-500" />
                 Product Image
               </label>
               <div className="relative">
@@ -208,7 +209,7 @@ const AddProduct = () => {
                   type="file"
                   accept="image/*"
                   onChange={(e) => setImage(e.target.files[0])}
-                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40 outline-none transition-all duration-200 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#FF8C00] file:text-black hover:file:bg-[#ffa733] file:cursor-pointer"
+                  className="w-full px-4 py-3 rounded-lg bg-[#1e1e1e] text-gray-100 border border-[#FF8C00]/30 focus:border-[#FF8C00] focus:ring-2 focus:ring-[#FF8C00]/40 outline-none transition-all duration-200 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-500 file:text-white hover:file:bg-[#ffa733] file:cursor-pointer"
                 />
                 {image && (
                   <p className="mt-2 text-sm text-gray-400">
@@ -224,12 +225,15 @@ const AddProduct = () => {
               disabled={loading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className={`w-full py-4 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-bold text-lg shadow-md transition-all flex items-center justify-center gap-2 ${
+              className={`w-full py-4 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-bold text-lg shadow-md transition-all flex items-center justify-center gap-2 ${
                 loading ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
-              <FaPlusCircle size={20} />
-              {loading ? "Adding Product..." : "Add Product"}
+              {loading ? (
+                <><FaSpinner className="animate-spin mr-2 inline" /> Adding Product...</>
+              ) : (
+                <><FaPlusCircle size={20} /> Add Product</>
+              )}
             </motion.button>
           </form>
         </motion.div>

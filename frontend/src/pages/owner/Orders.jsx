@@ -117,7 +117,7 @@ const OwnerOrders = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-4 sm:p-6 md:p-12">
+    <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -125,7 +125,7 @@ const OwnerOrders = () => {
         transition={{ duration: 0.7 }}
         className="mb-6 sm:mb-8"
       >
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 text-[#FF8C00] drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 text-orange-500 drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
           All Orders
         </h2>
         <p className="text-gray-400 text-sm sm:text-base md:text-lg">
@@ -148,7 +148,7 @@ const OwnerOrders = () => {
                 {validOrders.length}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-[#FF8C00]/10 border border-[#FF8C00]/30 text-[#FF8C00]">
+            <div className="p-3 rounded-xl bg-orange-500/10 border border-[#FF8C00]/30 text-orange-500">
               <FaShoppingBag size={24} />
             </div>
           </div>
@@ -263,8 +263,8 @@ const OwnerOrders = () => {
                 {/* Order Header */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-[#FF8C00]/10 border border-[#FF8C00]/30">
-                      <FaShoppingBag className="text-[#FF8C00]" size={24} />
+                    <div className="p-3 rounded-xl bg-orange-500/10 border border-[#FF8C00]/30">
+                      <FaShoppingBag className="text-orange-500" size={24} />
                     </div>
                     <div>
                       <h3 className="text-2xl font-bold text-gray-100">
@@ -288,7 +288,7 @@ const OwnerOrders = () => {
                 {/* Order Items */}
                 <div className="mb-6">
                   <h4 className="font-semibold text-gray-200 mb-3 flex items-center gap-2">
-                    <FaBox className="text-[#FF8C00]" />
+                    <FaBox className="text-orange-500" />
                     Order Items ({order.items?.length || 0})
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -306,7 +306,7 @@ const OwnerOrders = () => {
                               Quantity: {item.quantity} × ₹{Number(item.price).toFixed(2)}
                             </p>
                           </div>
-                          <p className="text-[#FF8C00] font-semibold">
+                          <p className="text-orange-500 font-semibold">
                             ₹{(item.quantity * Number(item.price)).toFixed(2)}
                           </p>
                         </div>
@@ -318,14 +318,14 @@ const OwnerOrders = () => {
                 {/* Order Footer */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-[#FF8C00]/20">
                   <div className="flex items-center gap-2 text-gray-400">
-                    <FaCalendarAlt className="text-[#FF8C00]" />
+                    <FaCalendarAlt className="text-orange-500" />
                     <span className="text-sm">
                       {formatDate(order.order_date)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-gray-300 font-semibold">Total Amount:</span>
-                    <span className="text-2xl font-bold text-[#FF8C00]">
+                    <span className="text-2xl font-bold text-orange-500">
                       ₹{Number(order.total_amount).toFixed(2)}
                     </span>
                   </div>

@@ -1,15 +1,17 @@
 import React, { useContext, useEffect, useState, useMemo } from "react";
-import { FaShoppingCart, FaFilter, FaStar } from "react-icons/fa"; // Import FaFilter and FaStar
+import { FaShoppingCart, FaFilter, FaSortAmountDown, FaHeart, FaRegHeart, FaSearchPlus, FaStar } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
-import FilterSidebar from "./FilterSidebar"; // Import the new component
+import FilterSidebar from "./FilterSidebar";
 
 const ProductGrid = () => {
   const navigate = useNavigate();
   const { products, addToCart } = useContext(AuthContext);
   const [imageUrls, setImageUrls] = useState({});
+  const [imagesLoading, setImagesLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [wishlist, setWishlist] = useState([]);
 
   // --- NEW STATE FOR FILTERS ---
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -17,6 +19,7 @@ const ProductGrid = () => {
     categories: [],
     priceRange: null,
   });
+  const [sortBy, setSortBy] = useState("default");
 
   // Get search query from localStorage
   useEffect(() => {
@@ -66,9 +69,11 @@ const ProductGrid = () => {
         }
       }
       setImageUrls(updatedUrls);
+      setImagesLoading(false);
     };
 
     if (products.length > 0) fetchImages();
+    else setImagesLoading(false);
   }, [products]);
 
   // --- NEW: GET AVAILABLE CATEGORIES ---
@@ -99,6 +104,15 @@ const ProductGrid = () => {
 
   const clearFilters = () => {
     setSelectedFilters({ categories: [], priceRange: null });
+  };
+
+  const toggleWishlist = (e, productId) => {
+    e.stopPropagation();
+    if (wishlist.includes(productId)) {
+      setWishlist(wishlist.filter(id => id !== productId));
+    } else {
+      setWishlist([...wishlist, productId]);
+    }
   };
 
   // Animation Variants
@@ -152,11 +166,28 @@ const ProductGrid = () => {
       });
     }
 
+    // 4. Sort products
+    if (sortBy === "price-low") {
+      tempProducts.sort((a, b) => {
+        const pa = parseFloat(a.price) - (parseFloat(a.price) * parseFloat(a.discount)) / 100;
+        const pb = parseFloat(b.price) - (parseFloat(b.price) * parseFloat(b.discount)) / 100;
+        return pa - pb;
+      });
+    } else if (sortBy === "price-high") {
+      tempProducts.sort((a, b) => {
+        const pa = parseFloat(a.price) - (parseFloat(a.price) * parseFloat(a.discount)) / 100;
+        const pb = parseFloat(b.price) - (parseFloat(b.price) * parseFloat(b.discount)) / 100;
+        return pb - pa;
+      });
+    } else if (sortBy === "name") {
+      tempProducts.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    }
+
     return tempProducts;
-  }, [products, searchQuery, selectedFilters]);
+  }, [products, searchQuery, selectedFilters, sortBy]);
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#F5F5F5] p-4 sm:p-6 md:p-12">
+    <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6">
       {/* --- NEW: Filter Sidebar Component --- */}
       <FilterSidebar
         isOpen={isFilterOpen}
@@ -169,20 +200,32 @@ const ProductGrid = () => {
 
       {/* Header and New Filter Button */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center text-[#FF8C00]">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center text-orange-500">
           {searchQuery.trim()
             ? `Results for "${searchQuery}"`
             : "Featured Products"}
         </h2>
 
-        {/* --- NEW: Filter Button --- */}
-        <button
-          onClick={() => setIsFilterOpen(true)}
-          className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-[#1e1e1e] border border-[#FF8C00]/50 rounded-lg text-[#FF8C00] font-semibold hover:bg-[#FF8C00] hover:text-black transition-colors text-sm sm:text-base"
-        >
-          <FaFilter />
-          <span>Filters</span>
-        </button>
+        {/* --- Filter & Sort Buttons --- */}
+        <div className="flex items-center gap-3">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-gray-300 focus:border-[#FF8C00]/50 focus:outline-none appearance-none cursor-pointer hover:bg-white/8 transition-colors"
+          >
+            <option value="default">Sort by</option>
+            <option value="price-low">Price: Low → High</option>
+            <option value="price-high">Price: High → Low</option>
+            <option value="name">Name: A → Z</option>
+          </select>
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 font-medium hover:bg-orange-500/10 hover:text-orange-500 hover:border-[#FF8C00]/30 transition-all text-sm"
+          >
+            <FaFilter size={12} />
+            <span>Filters</span>
+          </button>
+        </div>
       </div>
 
       {/* Product Grid */}
@@ -210,28 +253,42 @@ const ProductGrid = () => {
             return (
               <motion.div
                 key={product.product_id}
-                className="bg-[#1e1e1e] border border-[#FF8C00]/30 rounded-2xl overflow-hidden shadow-lg flex flex-col"
+                className="bg-[#12121a]/80 border border-white/5 rounded-2xl overflow-hidden shadow-lg flex flex-col hover:border-[#FF8C00]/20 transition-colors"
                 variants={cardVariants}
-                whileHover={{
-                  scale: 1.03,
-                  y: -5,
-                  boxShadow: "0px 10px 20px rgba(255, 140, 0, 0.2)",
-                }}
+                whileHover={{ scale: 1.02, y: -4 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
                 <div
-                  className="relative cursor-pointer"
-                  onClick={() =>
-                    navigate(`/consumer/product/${product.product_id}`)
-                  }
+                  className="relative group cursor-pointer overflow-hidden"
+                  onClick={() => navigate(`/consumer/product/${product.product_id}`)}
                 >
-                  <img
-                    src={imageUrls[product.product_id] || product.product_image}
-                    alt={product.name}
-                    className="w-full h-56 object-cover"
-                  />
+                  {imagesLoading ? (
+                    <div className="w-full h-56 skeleton" />
+                  ) : (
+                    <img
+                      src={imageUrls[product.product_id] || product.product_image}
+                      alt={product.name}
+                      className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  )}
+                  
+                  {/* Quick View Overlay */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                    <button 
+                      onClick={(e) => toggleWishlist(e, product.product_id)}
+                      className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-[#FF4B91] hover:text-white transition-colors"
+                    >
+                      {wishlist.includes(product.product_id) ? <FaHeart className="text-[#FF4B91]" /> : <FaRegHeart />}
+                    </button>
+                    <button 
+                      className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-orange-500 transition-colors"
+                    >
+                      <FaSearchPlus />
+                    </button>
+                  </div>
+
                   {discount > 0 && (
-                    <span className="absolute top-3 right-3 bg-[#FF8C00] text-black text-xs font-bold px-2 py-1 rounded-full">
+                    <span className="absolute top-3 right-3 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                       {discount.toFixed(0)}% OFF
                     </span>
                   )}
@@ -245,7 +302,13 @@ const ProductGrid = () => {
                       navigate(`/consumer/product/${product.product_id}`)
                     }
                   >
-                    <h3 className="font-bold text-lg mb-2 text-gray-100 hover:text-[#FF8C00] transition-colors">
+                    {/* Category Badge */}
+                    {product.category && (
+                      <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-orange-500 bg-orange-500/10 border border-[#FF8C00]/20 px-2.5 py-0.5 rounded-full mb-2">
+                        {product.category}
+                      </span>
+                    )}
+                    <h3 className="font-bold text-lg mb-2 text-gray-100 hover:text-orange-500 transition-colors">
                       {product.name}
                     </h3>
                     <p className="text-gray-400 text-sm mb-2 min-h-[40px] line-clamp-2">
@@ -271,12 +334,12 @@ const ProductGrid = () => {
                           <span className="text-gray-500 line-through text-sm">
                             ₹{price.toFixed(2)}
                           </span>
-                          <span className="text-xl font-semibold text-[#FF8C00]">
+                          <span className="text-xl font-semibold text-orange-500">
                             ₹{finalPrice.toFixed(2)}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-xl font-semibold text-[#FF8C00]">
+                        <span className="text-xl font-semibold text-orange-500">
                           ₹{price.toFixed(2)}
                         </span>
                       )}
@@ -302,7 +365,7 @@ const ProductGrid = () => {
                       addToCart(product.product_id, 1);
                     }}
                     disabled={product.stock_quantity === 0}
-                    className="w-full px-4 py-3 mt-2 rounded-lg bg-[#FF8C00] hover:bg-[#ffa733] text-black font-semibold shadow-md flex items-center justify-center gap-2 transition-colors disabled:bg-gray-600 disabled:hover:bg-gray-600 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 mt-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold shadow-md flex items-center justify-center gap-2 transition-colors disabled:bg-gray-600 disabled:hover:bg-gray-600 disabled:cursor-not-allowed"
                     whileTap={{ scale: 0.95 }}
                   >
                     <FaShoppingCart />
