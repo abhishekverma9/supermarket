@@ -3,12 +3,20 @@ Standard RAG Backend with Groq API
 FastAPI server that handles simple retrieval (Vector DB) and final answer generation.
 """
 
+import os
+import sys
+
+# Limit threads to reduce memory footprint on Render free tier
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
+import asyncio
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
-import os
 
 # Load environment variables
 from dotenv import load_dotenv
