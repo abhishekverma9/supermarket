@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import { db } from "../config/db.js";
 import { generateToken } from "../utils/generateToken.js";
 import { generateOTP, storeOTP, verifyOTP, isOTPVerified, removeOTP, canResendOTP } from "../utils/otpStore.js";
-import { sendLoginOTPEmail } from "../utils/emailService.js";
+import { sendLoginOTPEmail, sendOTPEmail } from "../utils/emailService.js";
 import { storeAuthSession, getAuthSession, removeAuthSession } from "../utils/authSessionStore.js";
 
 // ---------------------------
@@ -193,6 +193,7 @@ const forgotPassword = async (req, res) => {
     return res.json({
       success: true,
       message: "OTP sent to your email",
+      otp: !process.env.COMPANY_EMAIL ? otp : undefined
     });
   } catch (error) {
     console.error(error);
@@ -393,6 +394,7 @@ const sendLoginOtp = async (req, res) => {
     return res.json({
       success: true,
       message: "OTP sent to your email",
+      otp: !process.env.COMPANY_EMAIL ? otp : undefined
     });
   } catch (error) {
     console.error(error);
@@ -500,6 +502,7 @@ const sendSignupOtp = async (req, res) => {
     return res.json({
       success: true,
       message: "OTP sent to your email",
+      otp: !process.env.COMPANY_EMAIL ? otp : undefined
     });
   } catch (error) {
     console.error(error);

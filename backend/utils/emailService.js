@@ -20,7 +20,8 @@ export const sendOTPEmail = async (email, otp) => {
   try {
     // Check if email credentials are configured
     if (!process.env.COMPANY_EMAIL || !process.env.COMPANY_EMAIL_APP_PASSWORD) { 
-      return { success: false, message: "Email service not configured" };
+      console.warn(`[DEV MODE] Simulated sending OTP ${otp} to ${email}`);
+      return { success: true, messageId: "dev-mode-simulated" };
     } 
 
     const transporter = createTransporter();
@@ -74,7 +75,8 @@ export const sendLoginOTPEmail = async (email, otp) => {
   try {
    // Check if email credentials are configured
     if (!process.env.COMPANY_EMAIL || !process.env.COMPANY_EMAIL_APP_PASSWORD) { 
-      return { success: false, message: "Email service not configured" };
+      console.warn(`[DEV MODE] Simulated sending Login OTP ${otp} to ${email}`);
+      return { success: true, messageId: "dev-mode-simulated" };
     } 
 
     const transporter = createTransporter();

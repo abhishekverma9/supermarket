@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, useMemo } from "react";
-import { FaShoppingCart, FaFilter } from "react-icons/fa"; // Import FaFilter
+import { FaShoppingCart, FaFilter, FaStar } from "react-icons/fa"; // Import FaFilter and FaStar
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
@@ -237,9 +237,22 @@ const ProductGrid = () => {
                     <h3 className="font-bold text-lg mb-2 text-gray-100 hover:text-[#FF8C00] transition-colors">
                       {product.name}
                     </h3>
-                    <p className="text-gray-400 text-sm mb-4 min-h-[60px]">
+                    <p className="text-gray-400 text-sm mb-2 min-h-[40px] line-clamp-2">
                       {product.description}
                     </p>
+                    {/* Rating Section */}
+                    {product.average_rating !== undefined && (
+                      <div className="flex items-center gap-1 mb-3">
+                        <div className="flex text-sm text-[#FF8C00]">
+                          {[...Array(5)].map((_, i) => (
+                            <FaStar key={i} className={i < Math.round(Number(product.average_rating)) ? "text-yellow-400" : "text-gray-600"} />
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-400 ml-1">
+                          ({product.total_reviews} reviews)
+                        </span>
+                      </div>
+                    )}
                     {/* Price Section */}
                     <div className="flex justify-between items-center mb-4">
                       {discount > 0 ? (

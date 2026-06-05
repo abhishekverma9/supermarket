@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const ConsumerLayout = () => {
   const navigate = useNavigate();
-  const { cart, products, setProducts } = useContext(AuthContext);
+  const { cart, products, setProducts, isGuest, guestLogout } = useContext(AuthContext);
   const [searchQuery, setSearchQuery] = useState("");
   const [chatbotOpen, setChatbotOpen] = useState(false);
 
@@ -18,6 +18,7 @@ const ConsumerLayout = () => {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
+    if (isGuest) guestLogout();
     navigate("/login");
   };
 
@@ -45,6 +46,11 @@ const ConsumerLayout = () => {
           <div>
             <h1 className="text-2xl font-extrabold text-[#FF8C00]">Shop4Ever</h1>
             <p className="text-sm text-gray-400 -mt-1">Consumer Panel</p>
+            {isGuest && (
+              <span className="ml-2 px-2 py-0.5 text-xs font-bold rounded-full bg-[#8A2BE2]/30 text-[#c084fc] border border-[#8A2BE2]/50 animate-pulse">
+                Guest Mode
+              </span>
+            )}
           </div>
         </div>
 
