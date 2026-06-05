@@ -186,7 +186,7 @@
             } catch (error) {
                 statusBadge.textContent = "🔴 Offline";
                 statusBadge.className = "status-badge status-offline";
-                addMessageToChat(`⚠ Backend server is offline or error: ${error.message}. Start it with: python backend.py`, "agent");
+                addMessageToChat(`⚠ Backend server is offline or error: ${error.message}. Start agentic RAG: python backend1.py  —  or supermarket RAG: python backend.py`, "agent");
             }
         }
         checkServerHealth();

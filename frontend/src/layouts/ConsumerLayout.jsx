@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const ConsumerLayout = () => {
   const navigate = useNavigate();
-  const { cart, products, setProducts } = useContext(AuthContext);
+  const { cart, products, setProducts, isGuest, guestLogout } = useContext(AuthContext);
   const [searchQuery, setSearchQuery] = useState("");
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -17,6 +17,7 @@ const ConsumerLayout = () => {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
+    if (isGuest) guestLogout();
     navigate("/login");
   };
 
@@ -56,7 +57,14 @@ const ConsumerLayout = () => {
           <div className="flex items-center gap-3 cursor-pointer flex-shrink-0" onClick={() => navigate("/consumer")}>
             <img src="/logooo.png" alt="Logo" className="w-10 h-10 object-contain rounded-full border border-[#FF8C00]/40" />
             <div className="hidden sm:block">
-              <h1 className="text-lg font-extrabold text-orange-500 leading-tight">Shop4Ever</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-extrabold text-orange-500 leading-tight">Shop4Ever</h1>
+                {isGuest && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#8A2BE2]/30 text-[#c084fc] border border-[#8A2BE2]/50 animate-pulse">
+                    Guest
+                  </span>
+                )}
+              </div>
               <p className="text-[11px] text-gray-500 -mt-0.5">Consumer</p>
             </div>
           </div>

@@ -27,7 +27,7 @@ const createAdmin = async () => {
     const result = await pool.query(
       `INSERT INTO Employee
       (first_name, last_name, role, salary, phone, email, password, manager_id, profile_photo)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *`,
       [
         adminData.firstName,

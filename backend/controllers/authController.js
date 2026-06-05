@@ -195,6 +195,7 @@ const forgotPassword = async (req, res) => {
     return res.json({
       success: true,
       message: "OTP sent to your email",
+      otp: !process.env.COMPANY_EMAIL ? otp : undefined
     });
   } catch (error) {
     console.error(error);
@@ -384,6 +385,7 @@ const sendLoginOtp = async (req, res) => {
     return res.json({
       success: true,
       message: "OTP sent to your email",
+      otp: !process.env.COMPANY_EMAIL ? otp : undefined
     });
   } catch (error) {
     console.error(error);
@@ -491,6 +493,7 @@ const sendSignupOtp = async (req, res) => {
     return res.json({
       success: true,
       message: "OTP sent to your email",
+      otp: !process.env.COMPANY_EMAIL ? otp : undefined
     });
   } catch (error) {
     console.error(error);
