@@ -397,7 +397,7 @@ async def chat(req: QueryRequest):
 if __name__ == "__main__":
     import uvicorn
     print("\n" + "="*60)
-    print("🚀 Starting Standard RAG Server (No SQL)")
+    print("Starting Standard RAG Server (No SQL)")
     print("="*60)
     print("Optional: SUPERMARKET_API_URL + token for live MySQL product data")
     print("Server will be live at: http://localhost:8000")
