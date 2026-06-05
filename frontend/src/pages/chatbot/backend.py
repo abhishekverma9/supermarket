@@ -30,7 +30,7 @@ load_dotenv()
 
 try:
     from langchain_openai import ChatOpenAI
-    from langchain_community.embeddings import HuggingFaceEmbeddings
+    from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
     from langchain_community.vectorstores import Chroma
     from langchain_community.document_loaders import TextLoader
     from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -38,7 +38,7 @@ try:
     DEEPSEEK_API_AVAILABLE = True
 except ImportError:
     DEEPSEEK_API_AVAILABLE = False
-    print("Warning: Install dependencies with: pip install langchain-openai langchain-community langchain-chroma sentence-transformers")
+    print("Warning: Install dependencies with: pip install langchain-openai langchain-community langchain-chroma fastembed")
 
 # ------------------------------------------------------------------------------
 # FastAPI Setup
@@ -96,9 +96,9 @@ def init_vector_db():
     chunks = splitter.split_documents(docs)
     
     # Embeddings
-    embeddings = HuggingFaceEmbeddings(
+    from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+    embeddings = FastEmbedEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2",
-        model_kwargs={"device": "cpu"},
     )
     
     # Fix file path syntax

@@ -132,9 +132,9 @@ async def _get_live_retriever(token: Optional[str] = None, k: int = 5):
         return None
 
     docs = [product_to_document(p) for p in products]
-    embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",
-        model_kwargs={"device": "cpu"},
+    from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+    embeddings = FastEmbedEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
     store = Chroma.from_documents(documents=docs, embedding=embeddings, collection_name="live_supermarket")
     retriever = store.as_retriever(search_kwargs={"k": k})

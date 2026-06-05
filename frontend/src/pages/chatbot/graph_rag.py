@@ -76,9 +76,9 @@ class KnowledgeGraphRAG:
         if not EMBEDDINGS_AVAILABLE:
             return None
         if self._embedding_model is None:
-            self._embedding_model = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2",
-                model_kwargs={"device": "cpu"},
+            from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+            self._embedding_model = FastEmbedEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2"
             )
         return self._embedding_model
 
