@@ -400,6 +400,8 @@ if __name__ == "__main__":
     print("Starting Standard RAG Server (No SQL)")
     print("="*60)
     print("Optional: SUPERMARKET_API_URL + token for live MySQL product data")
-    print("Server will be live at: http://localhost:8000")
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    print(f"Server will be live at: http://localhost:{port}")
     print("="*60 + "\n")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=port)
