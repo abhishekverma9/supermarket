@@ -22,6 +22,7 @@ A full-stack web application for managing supermarket operations, built with mod
 - **User Management** - Role-based access control and user profiles
 - **Product Management** - Manage supermarket inventory with image uploads
 - **Shopping Cart** - Add/remove products and manage orders
+- **AI Chatbot Integration** - Intelligent customer support and data retrieval via graph-RAG and LLMs
 - **Email Notifications** - Order confirmations and user notifications via Nodemailer
 - **Image Management** - Upload and manage product images using ImageKit
 - **Responsive UI** - Modern, mobile-friendly interface with Tailwind CSS
