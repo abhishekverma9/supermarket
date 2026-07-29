@@ -51,8 +51,7 @@ const OwnerProducts = () => {
     try {
       const { data } = await axios.post(
         backendUrl + `/api/admin/update-discount/${product_Id}`,
-        { value: formData.value, description: formData.description },
-        { headers: { token } }
+        { value: formData.value, description: formData.description }
       );
       if (data.success) {
         toast.success(data.message);

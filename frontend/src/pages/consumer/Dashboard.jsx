@@ -1,25 +1,103 @@
 import React, { useContext, useEffect, useState, useMemo } from "react";
-import { FaShoppingCart, FaFilter, FaSortAmountDown, FaHeart, FaRegHeart, FaSearchPlus } from "react-icons/fa";
+import { FaShoppingCart, FaFilter, FaSortAmountDown, FaHeart, FaRegHeart, FaSearchPlus, FaSpinner } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import FilterSidebar from "./FilterSidebar";
+import axios from "axios";
 
 const ProductGrid = () => {
   const navigate = useNavigate();
-  const { products, addToCart } = useContext(AuthContext);
+  const { addToCart, backendUrl } = useContext(AuthContext);
+  
+  const [products, setProducts] = useState([]);
   const [imageUrls, setImageUrls] = useState({});
   const [imagesLoading, setImagesLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [wishlist, setWishlist] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
-  // --- NEW STATE FOR FILTERS ---
+  // Pagination and Filters
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [availableCategories, setAvailableCategories] = useState([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState({
     categories: [],
     priceRange: null,
   });
   const [sortBy, setSortBy] = useState("default");
+
+  // Fetch available categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data } = await axios.get(`${backendUrl}/api/product/categories`);
+        if (data.success) {
+          setAvailableCategories(data.categories);
+        }
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+    fetchCategories();
+  }, [backendUrl]);
+
+  // Fetch products from backend
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoadingProducts(true);
+      try {
+        const params = {
+          search: searchQuery,
+          page: page,
+          limit: 12,
+        };
+
+        if (selectedFilters.categories.length > 0) {
+          params.category = selectedFilters.categories.join(",");
+        }
+
+        if (selectedFilters.priceRange) {
+          params.minPrice = selectedFilters.priceRange.min;
+          params.maxPrice = selectedFilters.priceRange.max;
+        }
+
+        if (sortBy === "price-low") params.sortBy = "price_asc";
+        else if (sortBy === "price-high") params.sortBy = "price_desc";
+        else if (sortBy === "name") params.sortBy = "name"; // Note: Backend handles newest by default
+
+        const { data } = await axios.get(`${backendUrl}/api/product/products`, { params });
+        
+        if (data.success) {
+          if (page === 1) {
+            setProducts(data.products);
+          } else {
+            setProducts((prev) => [...prev, ...data.products]);
+          }
+          setHasMore(data.currentPage < data.totalPages);
+        } else {
+          if (page === 1) setProducts([]);
+          setHasMore(false);
+        }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchProducts();
+    }, 300); // debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedFilters, sortBy, page, backendUrl]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedFilters, sortBy]);
 
   // Get search query from localStorage
   useEffect(() => {
@@ -31,7 +109,6 @@ const ProductGrid = () => {
     };
 
     window.addEventListener("searchQueryChanged", handleSearchChange);
-
     return () => {
       window.removeEventListener("searchQueryChanged", handleSearchChange);
     };
@@ -40,24 +117,33 @@ const ProductGrid = () => {
   // Fetch images from Unsplash dynamically
   useEffect(() => {
     const fetchImages = async () => {
-      const updatedUrls = {};
+      setImagesLoading(true);
+      const updatedUrls = { ...imageUrls };
+      let newImagesFetched = false;
+
       for (const product of products) {
-        try {
-          const response = await fetch(
-            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
-              product.name
-            )}&per_page=1&client_id=${import.meta.env.VITE_UNSPLASH_API_KEY}`
-          );
-          if (!response.ok) throw new Error("Unsplash API limit or error");
-          const data = await response.json();
-          updatedUrls[product.product_id] =
-            data.results[0]?.urls?.small || product.product_image;
-        } catch (error) {
-          console.error("Error fetching Unsplash image:", error.message);
-          updatedUrls[product.product_id] = product.product_image; // Fallback
+        if (!updatedUrls[product.product_id]) {
+          try {
+            const response = await fetch(
+              `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
+                product.name
+              )}&per_page=1&client_id=${import.meta.env.VITE_UNSPLASH_API_KEY}`
+            );
+            if (!response.ok) throw new Error("Unsplash API limit or error");
+            const data = await response.json();
+            updatedUrls[product.product_id] =
+              data.results[0]?.urls?.small || product.product_image;
+            newImagesFetched = true;
+          } catch (error) {
+            console.error("Error fetching Unsplash image:", error.message);
+            updatedUrls[product.product_id] = product.product_image; // Fallback
+            newImagesFetched = true;
+          }
         }
       }
-      setImageUrls(updatedUrls);
+      if (newImagesFetched) {
+        setImageUrls(updatedUrls);
+      }
       setImagesLoading(false);
     };
 
@@ -65,24 +151,15 @@ const ProductGrid = () => {
     else setImagesLoading(false);
   }, [products]);
 
-  // --- NEW: GET AVAILABLE CATEGORIES ---
-  const availableCategories = useMemo(() => {
-    const categories = new Set(products.map((p) => p.category).filter(Boolean));
-    return Array.from(categories);
-  }, [products]);
-
-  // --- NEW: FILTER HANDLERS ---
   const handleFilterChange = (type, value) => {
     setSelectedFilters((prevFilters) => {
       if (type === "category") {
-        // Toggle category in the array
         const newCategories = prevFilters.categories.includes(value)
           ? prevFilters.categories.filter((c) => c !== value)
           : [...prevFilters.categories, value];
         return { ...prevFilters, categories: newCategories };
       }
       if (type === "priceRange") {
-        // If clicking the same range, deselect it. Otherwise, set it.
         const newPriceRange =
           prevFilters.priceRange?.label === value.label ? null : value;
         return { ...prevFilters, priceRange: newPriceRange };
@@ -104,7 +181,6 @@ const ProductGrid = () => {
     }
   };
 
-  // Animation Variants
   const gridContainerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -120,64 +196,8 @@ const ProductGrid = () => {
     visible: { opacity: 1, y: 0 },
   };
 
-  // --- UPDATED: Filter products based on search AND new filters ---
-  const filteredProducts = React.useMemo(() => {
-    let tempProducts = [...products];
-
-    // 1. Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      tempProducts = tempProducts.filter(
-        (product) =>
-          product.name?.toLowerCase().includes(query) ||
-          product.description?.toLowerCase().includes(query) ||
-          product.category?.toLowerCase().includes(query)
-      );
-    }
-
-    // 2. Filter by category
-    if (selectedFilters.categories.length > 0) {
-      tempProducts = tempProducts.filter((product) =>
-        selectedFilters.categories.includes(product.category)
-      );
-    }
-
-    // 3. Filter by price
-    if (selectedFilters.priceRange) {
-      tempProducts = tempProducts.filter((product) => {
-        const price = parseFloat(product.price);
-        const discount = parseFloat(product.discount);
-        const finalPrice = price - (price * discount) / 100;
-        return (
-          finalPrice >= selectedFilters.priceRange.min &&
-          finalPrice <= selectedFilters.priceRange.max
-        );
-      });
-    }
-
-    // 4. Sort products
-    if (sortBy === "price-low") {
-      tempProducts.sort((a, b) => {
-        const pa = parseFloat(a.price) - (parseFloat(a.price) * parseFloat(a.discount)) / 100;
-        const pb = parseFloat(b.price) - (parseFloat(b.price) * parseFloat(b.discount)) / 100;
-        return pa - pb;
-      });
-    } else if (sortBy === "price-high") {
-      tempProducts.sort((a, b) => {
-        const pa = parseFloat(a.price) - (parseFloat(a.price) * parseFloat(a.discount)) / 100;
-        const pb = parseFloat(b.price) - (parseFloat(b.price) * parseFloat(b.discount)) / 100;
-        return pb - pa;
-      });
-    } else if (sortBy === "name") {
-      tempProducts.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-    }
-
-    return tempProducts;
-  }, [products, searchQuery, selectedFilters, sortBy]);
-
   return (
     <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6">
-      {/* --- NEW: Filter Sidebar Component --- */}
       <FilterSidebar
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
@@ -187,7 +207,6 @@ const ProductGrid = () => {
         onClearFilters={clearFilters}
       />
 
-      {/* Header and New Filter Button */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-center text-orange-500">
           {searchQuery.trim()
@@ -195,7 +214,6 @@ const ProductGrid = () => {
             : "Featured Products"}
         </h2>
 
-        {/* --- Filter & Sort Buttons --- */}
         <div className="flex items-center gap-3">
           <select
             value={sortBy}
@@ -217,8 +235,7 @@ const ProductGrid = () => {
         </div>
       </div>
 
-      {/* Product Grid */}
-      {filteredProducts.length === 0 ? (
+      {products.length === 0 && !loadingProducts ? (
         <p className="text-center text-gray-400 text-base sm:text-lg p-4 sm:p-10">
           {searchQuery.trim() ||
           selectedFilters.categories.length > 0 ||
@@ -233,11 +250,10 @@ const ProductGrid = () => {
           initial="hidden"
           animate="visible"
         >
-          {filteredProducts.map((product) => {
-            // Price & Discount Logic
+          {products.map((product) => {
             const price = parseFloat(product.price);
-            const discount = parseFloat(product.discount);
-            const finalPrice = price - (price * discount) / 100;
+            const finalPrice = product.final_price || price;
+            const discount = parseFloat(product.discount_value || 0);
 
             return (
               <motion.div
@@ -251,8 +267,8 @@ const ProductGrid = () => {
                   className="relative group cursor-pointer overflow-hidden"
                   onClick={() => navigate(`/consumer/product/${product.product_id}`)}
                 >
-                  {imagesLoading ? (
-                    <div className="w-full h-56 skeleton" />
+                  {imagesLoading && !imageUrls[product.product_id] ? (
+                    <div className="w-full h-56 skeleton bg-white/5 animate-pulse" />
                   ) : (
                     <img
                       src={imageUrls[product.product_id] || product.product_image}
@@ -261,7 +277,6 @@ const ProductGrid = () => {
                     />
                   )}
                   
-                  {/* Quick View Overlay */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                     <button 
                       onClick={(e) => toggleWishlist(e, product.product_id)}
@@ -283,7 +298,6 @@ const ProductGrid = () => {
                   )}
                 </div>
 
-                {/* Card Content */}
                 <div className="p-5 flex flex-col flex-1">
                   <div
                     className="flex-1 cursor-pointer"
@@ -291,7 +305,6 @@ const ProductGrid = () => {
                       navigate(`/consumer/product/${product.product_id}`)
                     }
                   >
-                    {/* Category Badge */}
                     {product.category && (
                       <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-orange-500 bg-orange-500/10 border border-[#FF8C00]/20 px-2.5 py-0.5 rounded-full mb-2">
                         {product.category}
@@ -303,7 +316,6 @@ const ProductGrid = () => {
                     <p className="text-gray-400 text-sm mb-4 min-h-[60px]">
                       {product.description}
                     </p>
-                    {/* Price Section */}
                     <div className="flex justify-between items-center mb-4">
                       {discount > 0 ? (
                         <div className="flex flex-col">
@@ -320,7 +332,6 @@ const ProductGrid = () => {
                         </span>
                       )}
 
-                      {/* Stock */}
                       <span
                         className={`font-semibold text-sm ${
                           product.stock_quantity > 0
@@ -334,7 +345,6 @@ const ProductGrid = () => {
                       </span>
                     </div>
                   </div>
-                  {/* Add to Cart Button */}
                   <motion.button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -354,6 +364,26 @@ const ProductGrid = () => {
             );
           })}
         </motion.div>
+      )}
+
+      {/* Pagination Load More */}
+      {hasMore && products.length > 0 && (
+        <div className="mt-10 flex justify-center">
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={loadingProducts}
+            className="px-8 py-3 rounded-full border border-[#FF8C00]/40 text-orange-500 hover:bg-orange-500/10 font-medium transition-all shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingProducts && <FaSpinner className="animate-spin" />}
+            {loadingProducts ? "Loading..." : "Load More"}
+          </button>
+        </div>
+      )}
+
+      {loadingProducts && products.length === 0 && (
+        <div className="flex justify-center mt-10">
+          <FaSpinner className="animate-spin text-orange-500 text-3xl" />
+        </div>
       )}
     </div>
   );

@@ -7,18 +7,12 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const ConsumerLayout = () => {
   const navigate = useNavigate();
-  const { cart, products, setProducts } = useContext(AuthContext);
+  const { cart, products, setProducts, logout } = useContext(AuthContext);
   const [searchQuery, setSearchQuery] = useState("");
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const getTotalCartItems = (cart) => cart.reduce((total, item) => total + item.quantity, 0);
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    navigate("/login");
-  };
 
   // Debounced search
   useEffect(() => {

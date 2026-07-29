@@ -1,17 +1,14 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { FaTachometerAlt, FaUsers, FaClipboardList, FaBox, FaSignOutAlt, FaBars, FaTimes } from "react-icons/fa";
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 const OwnerLayout = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    navigate("/login");
-  };
+  const { logout } = useContext(AuthContext);
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${

@@ -10,6 +10,8 @@ import {
   sendSignupOtp,
   verifySignupOtp,
   googleLogin,
+  checkSession,
+  logout
 } from "../controllers/authController.js";
 
 const authRouter = express.Router();
@@ -25,5 +27,9 @@ authRouter.post("/verify-login-otp", verifyLoginOtp);
 authRouter.post("/send-signup-otp", sendSignupOtp);
 authRouter.post("/verify-signup-otp", verifySignupOtp);
 authRouter.post("/google", googleLogin);
+
+// New Routes
+authRouter.get("/check", checkSession);
+authRouter.post("/logout", logout);
 
 export default authRouter;

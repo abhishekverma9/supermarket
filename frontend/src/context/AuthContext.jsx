@@ -9,7 +9,8 @@ export const AuthContext = createContext()
 export const AuthContextProvider = ({ children }) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL
     const navigate = useNavigate()
-    const [token, setToken] = useState(localStorage.getItem("token") ? localStorage.getItem("token") : null)
+    const [token, setToken] = useState(false)
+    const [isLoadingAuth, setIsLoadingAuth] = useState(true)
     const [products, setProducts] = useState([])
     const [cart, setCart] = useState([])
     const [orders, setOrders] = useState([])
@@ -17,9 +18,13 @@ export const AuthContextProvider = ({ children }) => {
     const [allOrders, setAllOrders] = useState([])
     const [consumerProfile, setConsumerProfile] = useState(null)
 
-    const logout = () => {
-        setToken(null);
-        localStorage.removeItem("token");
+    const logout = async () => {
+        try {
+            await axios.post(`${backendUrl}/api/auth/logout`);
+        } catch (error) {
+            console.error("Logout error", error);
+        }
+        setToken(false);
         localStorage.removeItem("role");
         setRole("");
         navigate("/login");
@@ -48,8 +53,8 @@ export const AuthContextProvider = ({ children }) => {
     // Fetch consumer profile
     const fetchConsumerProfile = async () => {
         try {
-            const { data } = await axios.get(`${backendUrl}/api/consumer/profile`, {
-                headers: { token }
+            const { data } = await axios.get(`${backendUrl}/api/consumer/profile`, { 
+                // headers removed
             });
             if (data.success) {
                 setConsumerProfile(data.user);
@@ -61,8 +66,8 @@ export const AuthContextProvider = ({ children }) => {
 
     const updateConsumerProfile = async (profileData) => {
         try {
-            const { data } = await axios.post(`${backendUrl}/api/consumer/update-profile`, profileData, {
-                headers: { token }
+            const { data } = await axios.post(`${backendUrl}/api/consumer/update-profile`, profileData, { 
+                // headers removed
             });
             if (data.success) {
                 toast.success(data.message);
@@ -98,8 +103,7 @@ export const AuthContextProvider = ({ children }) => {
         try {
             const { data } = await axios.post(
                 `${backendUrl}/api/cart/add`,
-                { product_id, quantity },
-                { headers: { token } }
+                { product_id, quantity }
             );
             if (data.success) {
                 toast.success("Product added to cart");
@@ -116,8 +120,7 @@ export const AuthContextProvider = ({ children }) => {
         try {
             const { data } = await axios.post(
                 `${backendUrl}/api/cart/update`,
-                { cart_id, quantity },
-                { headers: { token } }
+                { cart_id, quantity }
             );
             if (data.success) {
                 toast.success("Cart updated");
@@ -134,8 +137,7 @@ export const AuthContextProvider = ({ children }) => {
     const removeCartItem = async (cart_id) => {
         try {
             const { data } = await axios.post(
-                `${backendUrl}/api/cart/remove/${cart_id}`, { cart_id },
-                { headers: { token } }
+                `${backendUrl}/api/cart/remove/${cart_id}`, { cart_id }
             );
             if (data.success) {
                 toast.info("Item removed");
@@ -171,7 +173,7 @@ export const AuthContextProvider = ({ children }) => {
             const { data } = await axios.post(
                 `${backendUrl}/api/cart/checkout`,
                 deliveryDetails, // contains receiver_name, phone, etc.
-                { headers: { token } }
+                {}
             );
 
             if (data.success) {
@@ -191,7 +193,7 @@ export const AuthContextProvider = ({ children }) => {
     };
     const fetchAllProducts = async () => {
         try {
-            const { data } = await axios.get(backendUrl + '/api/product/products', { headers: { token } })
+            const { data } = await axios.get(backendUrl + '/api/product/products', { params: { limit: 1000 } })
             if (data.success) {
                 setProducts(data.products)
             } else {
@@ -203,8 +205,8 @@ export const AuthContextProvider = ({ children }) => {
     }
     const fetchOrders = async () => {
         try {
-            const { data } = await axios.get(`${backendUrl}/api/order/orders`, {
-                headers: { token }
+            const { data } = await axios.get(`${backendUrl}/api/order/orders`, { 
+                // headers removed
             });
             if (data.success) {
                 setOrders(data.orders);
@@ -217,7 +219,7 @@ export const AuthContextProvider = ({ children }) => {
     };
     const updateProduct = async (product_id, updatedFields) => {
         try {
-            const { data } = await axios.post(backendUrl + `/api/product/update/${product_id}`, updatedFields, { headers: { token } });
+            const { data } = await axios.post(backendUrl + `/api/product/update/${product_id}`, updatedFields);
             if (data.success) {
                 setProducts((prev) =>
                     prev.map((p) =>
@@ -236,7 +238,7 @@ export const AuthContextProvider = ({ children }) => {
     // Delete product
     const deleteProduct = async (product_id) => {
         try {
-            const { data } = await axios.post(backendUrl + `/api/product/delete/${product_id}`, {}, { headers: { token } });
+            const { data } = await axios.post(backendUrl + `/api/product/delete/${product_id}`, {});
             if (data.success) {
                 setProducts((prev) => prev.filter((p) => p.product_id !== product_id));
                 toast.success(data.message)
@@ -256,7 +258,7 @@ export const AuthContextProvider = ({ children }) => {
     };
     const fetchAllOrderForEmp = async () => {
         try {
-            const { data } = await axios.get(backendUrl + `/api/employee/orders`, { headers: { token } });
+            const { data } = await axios.get(backendUrl + `/api/employee/orders`);
             if (data.success) {
                 setAllOrders(data.orders)
                 toast.success(data.message)
@@ -267,6 +269,26 @@ export const AuthContextProvider = ({ children }) => {
             toast.error(error.message);
         }
     }
+    useEffect(() => {
+        axios.defaults.withCredentials = true;
+        const checkAuth = async () => {
+            try {
+                const { data } = await axios.get(`${backendUrl}/api/auth/check`);
+                if (data.success) {
+                    setToken(true);
+                    setRole(data.user.role);
+                } else {
+                    setToken(false);
+                }
+            } catch (error) {
+                setToken(false);
+            } finally {
+                setIsLoadingAuth(false);
+            }
+        };
+        checkAuth();
+    }, [backendUrl]);
+
     useEffect(() => {
         if (token && role === "consumer") {
             fetchCartItems()
@@ -280,7 +302,7 @@ export const AuthContextProvider = ({ children }) => {
     }, [token,role])
 
     const value = {
-        token, setToken,fetchAllProducts, backendUrl, products, setProducts, addToCart, updateCartItem, removeCartItem, checkout, clearCart, cart, fetchCartItems, orders, role, setRole, updateProduct, deleteProduct, formatDate, allOrders, consumerProfile, updateConsumerProfile, logout
+        token, setToken, isLoadingAuth, fetchAllProducts, backendUrl, products, setProducts, addToCart, updateCartItem, removeCartItem, checkout, clearCart, cart, fetchCartItems, orders, role, setRole, updateProduct, deleteProduct, formatDate, allOrders, consumerProfile, updateConsumerProfile, logout
     }
     return (
         <AuthContext.Provider value={value}>

@@ -6,6 +6,16 @@ import { sendLoginOTPEmail, sendOTPEmail, sendSignupOTPEmail } from "../utils/em
 import { storeAuthSession, getAuthSession, removeAuthSession } from "../utils/authSessionStore.js";
 import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
+import jwt from "jsonwebtoken";
+
+const setTokenCookie = (res, token) => {
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  });
+};
 
 // ---------------------------
 // Signup (Consumer only)
@@ -38,12 +48,12 @@ const signupConsumer = async (req, res) => {
     );
 
     const token = generateToken({ id: result.insertId, role: "consumer" });
+    setTokenCookie(res, token);
 
     return res.status(201).json({
       success: true,
       message: "Account created successfully",
       consumer_id: result.insertId,
-      token,
     });
   } catch (error) {
     console.error(error);
@@ -104,10 +114,10 @@ const login = async (req, res) => {
     }
 
     const token = generateToken({ id: user[idField], role });
+    setTokenCookie(res, token);
 
     return res.json({
       success: true,
-      token,
       user: {
         id: user[idField],
         name: user[nameField],
@@ -416,6 +426,7 @@ const verifyLoginOtp = async (req, res) => {
 
     // Generate token
     const token = generateToken({ id: session.data.userId, role: session.data.role });
+    setTokenCookie(res, token);
 
     // Clean up
     await removeOTP(email);
@@ -423,7 +434,6 @@ const verifyLoginOtp = async (req, res) => {
 
     return res.json({
       success: true,
-      token,
       user: {
         id: session.data.userId,
         name: session.data.name,
@@ -546,6 +556,7 @@ const verifySignupOtp = async (req, res) => {
     );
 
     const token = generateToken({ id: result.insertId, role: "consumer" });
+    setTokenCookie(res, token);
 
     // Clean up
     await removeOTP(email);
@@ -555,7 +566,6 @@ const verifySignupOtp = async (req, res) => {
       success: true,
       message: "Account created successfully",
       consumer_id: result.insertId,
-      token,
     });
   } catch (error) {
     console.error(error);
@@ -601,10 +611,10 @@ const googleLogin = async (req, res) => {
         // Log them in
         const user = existingConsumer[0];
         const jwtToken = generateToken({ id: user.consumer_id, role: "consumer" });
+        setTokenCookie(res, jwtToken);
         return res.json({
           success: true,
           message: "Login successful",
-          token: jwtToken,
           user: { id: user.consumer_id, name: user.first_name, role: "consumer" },
         });
       } else {
@@ -619,10 +629,10 @@ const googleLogin = async (req, res) => {
         );
 
         const jwtToken = generateToken({ id: result.insertId, role: "consumer" });
+        setTokenCookie(res, jwtToken);
         return res.status(201).json({
           success: true,
           message: "Account created successfully",
-          token: jwtToken,
           user: { id: result.insertId, name: firstName, role: "consumer" },
         });
       }
@@ -645,10 +655,10 @@ const googleLogin = async (req, res) => {
         }
 
         const jwtToken = generateToken({ id: user.employee_id, role });
+        setTokenCookie(res, jwtToken);
         return res.json({
           success: true,
           message: "Login successful",
-          token: jwtToken,
           user: { id: user.employee_id, name: user.first_name, role },
         });
       } else {
@@ -664,4 +674,37 @@ const googleLogin = async (req, res) => {
   }
 };
 
-export { signupConsumer, login, forgotPassword, verifyOtp, resetPassword, sendLoginOtp, verifyLoginOtp, sendSignupOtp, verifySignupOtp, googleLogin };
+// ---------------------------
+// Check Session
+// ---------------------------
+const checkSession = async (req, res) => {
+  try {
+    const token = req.cookies?.token;
+    if (!token) return res.status(401).json({ success: false, message: "No active session" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return res.json({
+      success: true,
+      user: {
+        id: decoded.id,
+        role: decoded.role,
+      }
+    });
+  } catch (error) {
+    return res.status(401).json({ success: false, message: "Session expired" });
+  }
+};
+
+// ---------------------------
+// Logout
+// ---------------------------
+const logout = async (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict"
+  });
+  return res.json({ success: true, message: "Logged out successfully" });
+};
+
+export { signupConsumer, login, forgotPassword, verifyOtp, resetPassword, sendLoginOtp, verifyLoginOtp, sendSignupOtp, verifySignupOtp, googleLogin, checkSession, logout };

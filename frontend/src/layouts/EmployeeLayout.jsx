@@ -1,17 +1,27 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { FaTachometerAlt, FaClipboardList, FaBox, FaUser, FaSignOutAlt, FaBars, FaTimes } from "react-icons/fa";
-import { useState } from "react";
+import { useState, useContext, useEffect } from "react";
+import { AuthContext } from "../context/AuthContext";
+import { FaTachometerAlt, FaClipboardList, FaBox, FaUser, FaSignOutAlt, FaBars, FaTimes, FaSearch } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
 const EmployeeLayout = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    navigate("/login");
-  };
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const { logout } = useContext(AuthContext);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery !== undefined) {
+        localStorage.setItem("searchQuery", searchQuery);
+        window.dispatchEvent(new CustomEvent("searchQueryChanged", { detail: searchQuery }));
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
@@ -34,6 +44,36 @@ const EmployeeLayout = () => {
             <div>
               <h1 className="text-lg font-extrabold text-orange-500 leading-tight">Shop4Ever</h1>
               <p className="text-[11px] text-gray-500 -mt-0.5">Employee Panel</p>
+            </div>
+          </div>
+
+          {/* Search Bar - Center */}
+          <div className="flex-1 max-w-md mx-4 hidden md:block">
+            <div className="relative group">
+              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-orange-500 transition-colors" size={14} />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-10 py-2.5 rounded-xl bg-white/5 text-gray-100 border border-white/8 focus:border-[#FF8C00]/50 focus:ring-2 focus:ring-[#FF8C00]/20 outline-none transition-all text-sm placeholder-gray-600"
+                onFocus={() => {
+                  if (window.location.pathname !== "/employee") navigate("/employee");
+                }}
+              />
+              <AnimatePresence>
+                {searchQuery && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0 }}
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-gray-500 hover:text-orange-500 transition-colors"
+                  >
+                    <FaTimes size={12} />
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 

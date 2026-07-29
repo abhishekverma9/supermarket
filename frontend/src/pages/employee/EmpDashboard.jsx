@@ -1,12 +1,76 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useMemo } from "react";
 import { AuthContext } from "../../context/AuthContext";
-import { FaTrash, FaSave, FaEdit, FaTimes, FaBox, FaLayerGroup, FaRupeeSign, FaCalendarAlt, FaTag, FaWarehouse } from "react-icons/fa";
+import { FaTrash, FaSave, FaEdit, FaTimes, FaBox, FaLayerGroup, FaRupeeSign, FaCalendarAlt, FaTag, FaWarehouse, FaFilter } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import FilterSidebar from "../consumer/FilterSidebar";
 
 const Dashboard = () => {
   const { products, setProducts, updateProduct, deleteProduct, formatDate } = useContext(AuthContext);
   const [editStates, setEditStates] = useState({});
   const [imageUrls, setImageUrls] = useState({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedFilters, setSelectedFilters] = useState({
+    categories: [],
+    priceRange: null,
+  });
+
+  const availableCategories = useMemo(() => {
+    return Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      // 1. Search Query
+      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                            (p.product_id.toString().includes(searchQuery));
+      // 2. Category
+      const matchesCategory = selectedFilters.categories.length === 0 || selectedFilters.categories.includes(p.category);
+      // 3. Price
+      const matchesPrice = !selectedFilters.priceRange ? true : (() => {
+         const finalPrice = p.price - (p.price * (p.discount_value || 0)) / 100;
+         return finalPrice >= selectedFilters.priceRange.min && finalPrice <= selectedFilters.priceRange.max;
+      })();
+
+      return matchesSearch && matchesCategory && matchesPrice;
+    });
+  }, [products, searchQuery, selectedFilters]);
+
+  // Handle Search from Navbar
+  useEffect(() => {
+    const storedQuery = localStorage.getItem("searchQuery") || "";
+    setSearchQuery(storedQuery);
+
+    const handleSearchChange = (e) => {
+      setSearchQuery(e.detail);
+    };
+
+    window.addEventListener("searchQueryChanged", handleSearchChange);
+    return () => {
+      window.removeEventListener("searchQueryChanged", handleSearchChange);
+    };
+  }, []);
+
+  const handleFilterChange = (type, value) => {
+    setSelectedFilters((prev) => {
+      if (type === "category") {
+        const newCategories = prev.categories.includes(value)
+          ? prev.categories.filter((c) => c !== value)
+          : [...prev.categories, value];
+        return { ...prev, categories: newCategories };
+      }
+      if (type === "priceRange") {
+        const newPriceRange = prev.priceRange?.label === value.label ? null : value;
+        return { ...prev, priceRange: newPriceRange };
+      }
+      return prev;
+    });
+  };
+
+  const clearFilters = () => {
+    setSelectedFilters({ categories: [], priceRange: null });
+  };
 
   // Fetch image from Unsplash for each product
   useEffect(() => {
@@ -80,20 +144,36 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="mb-8"
-      >
-        <h2 className="text-4xl font-extrabold text-orange-500 drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
-          Products Inventory
-        </h2>
-        <p className="text-gray-400 mt-2 text-lg">Manage pricing, stock levels, and product details</p>
-      </motion.div>
+      <FilterSidebar
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        availableCategories={availableCategories}
+        selectedFilters={selectedFilters}
+        onFilterChange={handleFilterChange}
+        onClearFilters={clearFilters}
+      />
 
-      {products.length === 0 ? (
+      {/* Header and Controls Row */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-orange-500 drop-shadow-[0_0_10px_rgba(255,140,0,0.4)]">
+          {searchQuery.trim()
+            ? `Results for "${searchQuery}"`
+            : "Products Inventory"}
+        </h2>
+
+        {/* Filter Button */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 font-medium hover:bg-orange-500/10 hover:text-orange-500 hover:border-[#FF8C00]/30 transition-all text-sm"
+          >
+            <FaFilter size={12} />
+            <span>Filters</span>
+          </button>
+        </div>
+      </div>
+
+      {filteredProducts.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -110,7 +190,7 @@ const Dashboard = () => {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
         >
           <AnimatePresence>
-            {products.map((p) => {
+            {filteredProducts.map((p) => {
               const isEdit = editStates[p.product_id] || false;
               const imgSrc = imageUrls[p.product_id] || p.product_image;
               const stockQuantity = Number(p.stock_quantity);

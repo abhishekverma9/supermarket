@@ -26,8 +26,7 @@ const OrderCard = ({ order }) => {
     try {
       const { data } = await axios.post(
         backendUrl + `/api/employee/status/${order.order_id}`,
-        { status: newStatus },
-        { headers: { token } }
+        { status: newStatus }
       );
       if (data.success) {
         setStatus(newStatus);

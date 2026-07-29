@@ -44,7 +44,7 @@ const FilterSidebar = ({
 
           {/* Sidebar */}
           <motion.div
-            className="fixed top-0 left-0 w-full max-w-sm h-full bg-[#141414] border-r border-[#FF8C00]/40 z-50 shadow-2xl overflow-y-auto"
+            className="fixed top-0 left-0 w-full max-w-sm h-full bg-[#141414] border-r border-[#FF8C00]/40 z-50 shadow-2xl overflow-y-auto custom-scrollbar"
             variants={sidebarVariants}
             initial="hidden"
             animate="visible"

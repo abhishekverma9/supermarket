@@ -3,6 +3,7 @@ import 'dotenv/config'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
+import cookieParser from 'cookie-parser'
 import { connectDB, db } from './config/db.js'
 import { testEmailConfig } from './utils/emailService.js'
 import { initOTPTable } from './utils/otpStore.js'
@@ -56,8 +57,9 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 }))
 
-// Body parsing
+// Body and cookie parsing
 app.use(express.json({ limit: '10mb' }))
+app.use(cookieParser())
 
 // Global rate limiter — 100 requests per 15 minutes per IP
 const globalLimiter = rateLimit({

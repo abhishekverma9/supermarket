@@ -53,8 +53,7 @@ const LoginPage = () => {
       });
 
       if (data.success) {
-        setToken(data.token);
-        localStorage.setItem("token", data.token);
+        setToken(true);
         localStorage.setItem("role", selectedRole);
         setRole(selectedRole);
         toast.success(data.message || "Login successful!");
@@ -131,8 +130,7 @@ const LoginPage = () => {
           otp: authOtp,
         });
         if (data.success) {
-          setToken(data.token);
-          localStorage.setItem("token", data.token);
+          setToken(true);
           localStorage.setItem("role", "consumer");
           setRole("consumer");
           toast.success("Account created successfully!");
@@ -146,8 +144,7 @@ const LoginPage = () => {
           otp: authOtp,
         });
         if (data.success) {
-          setToken(data.token);
-          localStorage.setItem("token", data.token);
+          setToken(true);
           localStorage.setItem("role", selectedRole);
           setRole(selectedRole);
           toast.success("Login successful!");

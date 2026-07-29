@@ -85,8 +85,7 @@ const OwnerEmployees = () => {
     try {
       const { data } = await axios.post(
         `${backendUrl}/api/admin/delete/${employee_id}`,
-        {},
-        { headers: { token } }
+        {}
       );
       if (data.success) {
         toast.success(data.message);
@@ -110,8 +109,7 @@ const OwnerEmployees = () => {
     try {
       const { data } = await axios.post(
         `${backendUrl}/api/admin/update/${employee_id}`,
-        editData,
-        { headers: { token } }
+        editData
       );
       if (data.success) {
         toast.success(data.message);

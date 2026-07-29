@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
  */
 const authRole = (...allowedRoles) => {
   return (req, res, next) => {
-    const token = req.headers.token; // token from header
+    const token = req.cookies?.token || req.headers?.token; // token from cookie or header
     if (!token) {
       return res.status(401).json({ success: false, message: "Not authorized. Please login." });
     }
