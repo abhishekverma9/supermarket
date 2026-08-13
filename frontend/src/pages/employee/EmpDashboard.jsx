@@ -130,32 +130,37 @@ const Dashboard = () => {
     setSelectedFilters({ categories: [], priceRange: null });
   };
 
-  // Fetch image from Unsplash for each product (only for those missing images)
+  // Fetch images from Unsplash dynamically (matches Consumer Dashboard logic)
   useEffect(() => {
     const fetchImages = async () => {
       const updatedUrls = { ...imageUrls };
-      let updated = false;
-      for (const p of dashboardProducts) {
-        if (!updatedUrls[p.product_id] && !p.product_image) {
+      let newImagesFetched = false;
+
+      for (const product of dashboardProducts) {
+        if (!updatedUrls[product.product_id]) {
           try {
             const response = await fetch(
-              `https://api.unsplash.com/search/photos?query=${encodeURIComponent(p.name)}&per_page=1&client_id=${
-                import.meta.env.VITE_UNSPLASH_API_KEY
-              }`
+              `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
+                product.name
+              )}&per_page=1&client_id=${import.meta.env.VITE_UNSPLASH_API_KEY}`
             );
+            if (!response.ok) throw new Error("Unsplash API limit or error");
             const data = await response.json();
-            updatedUrls[p.product_id] = data.results[0]?.urls?.small || "/placeholder.png";
-            updated = true;
-          } catch {
-            updatedUrls[p.product_id] = "/placeholder.png";
-            updated = true;
+            updatedUrls[product.product_id] =
+              data.results[0]?.urls?.small || product.product_image;
+            newImagesFetched = true;
+          } catch (error) {
+            console.error("Error fetching Unsplash image:", error.message);
+            updatedUrls[product.product_id] = product.product_image; // Fallback
+            newImagesFetched = true;
           }
-        } else if (p.product_image) {
-          updatedUrls[p.product_id] = p.product_image;
         }
       }
-      if (updated) setImageUrls(updatedUrls);
+      if (newImagesFetched) {
+        setImageUrls(updatedUrls);
+      }
     };
+
     if (dashboardProducts.length > 0) fetchImages();
   }, [dashboardProducts]);
 

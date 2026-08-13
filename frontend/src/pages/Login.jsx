@@ -87,7 +87,7 @@ const LoginPage = () => {
           setCanResendAuthOtp(false);
           if (data.otp) {
             // Development mode - show OTP in console
-            console.log("OTP (Development):", data.otp);
+            // console.log("OTP (Development):", data.otp);
           }
         } else {
           toast.error(data.message);
@@ -107,7 +107,7 @@ const LoginPage = () => {
           setWrongPasswordAttempted(false);
           if (data.otp) {
             // Development mode - show OTP in console
-            console.log("OTP (Development):", data.otp);
+            // console.log("OTP (Development):", data.otp);
           }
         } else {
           toast.error(data.message);
@@ -181,7 +181,7 @@ const LoginPage = () => {
           setAuthOtpTimer(60);
           setCanResendAuthOtp(false);
           if (data.otp) {
-            console.log("OTP (Development):", data.otp);
+            // console.log("OTP (Development):", data.otp);
           }
         } else {
           toast.error(data.message);
@@ -197,7 +197,7 @@ const LoginPage = () => {
           setAuthOtpTimer(60);
           setCanResendAuthOtp(false);
           if (data.otp) {
-            console.log("OTP (Development):", data.otp);
+            // console.log("OTP (Development):", data.otp);
           }
         } else {
           toast.error(data.message);

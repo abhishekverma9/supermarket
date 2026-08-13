@@ -44,9 +44,9 @@ export const AuthContextProvider = ({ children }) => {
         toast.success("Signed in as Guest");
         navigate("/consumer");
     };
-    useEffect(() => {
-        console.log("Products updated:", products);
-      }, [products]);
+    // useEffect(() => {
+    //     console.log("Products updated:", products);
+    //   }, [products]);
     // Guest logout cleanup
     const guestLogout = () => {
         setIsGuest(false);

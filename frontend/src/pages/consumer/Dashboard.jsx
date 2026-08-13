@@ -250,9 +250,9 @@ const ProductGrid = () => {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
   };
-  useEffect(() => {
-    console.log("Products updated:", products);
-  }, [products]);
+  // useEffect(() => {
+  //   console.log("Products updated:", products);
+  // }, [products]);
   return (
     <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6">
       <FilterSidebar
