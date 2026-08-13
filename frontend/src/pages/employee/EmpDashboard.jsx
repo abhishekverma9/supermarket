@@ -1,11 +1,13 @@
 import React, { useContext, useState, useEffect, useMemo } from "react";
 import { AuthContext } from "../../context/AuthContext";
-import { FaTrash, FaSave, FaEdit, FaTimes, FaBox, FaLayerGroup, FaRupeeSign, FaCalendarAlt, FaTag, FaWarehouse, FaFilter } from "react-icons/fa";
+import { FaTrash, FaSave, FaEdit, FaTimes, FaBox, FaLayerGroup, FaRupeeSign, FaCalendarAlt, FaWarehouse, FaFilter, FaSpinner } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import FilterSidebar from "../consumer/FilterSidebar";
+import axios from "axios";
 
 const Dashboard = () => {
-  const { products, setProducts, updateProduct, deleteProduct, formatDate } = useContext(AuthContext);
+  const { updateProduct, deleteProduct, formatDate, backendUrl } = useContext(AuthContext);
+  const [dashboardProducts, setDashboardProducts] = useState([]);
   const [editStates, setEditStates] = useState({});
   const [imageUrls, setImageUrls] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -14,28 +16,84 @@ const Dashboard = () => {
     categories: [],
     priceRange: null,
   });
+  
+  // Pagination and Loading States
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState([]);
 
-  const availableCategories = useMemo(() => {
-    return Array.from(new Set(products.map(p => p.category).filter(Boolean)));
-  }, [products]);
+  // Fetch available categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data } = await axios.get(`${backendUrl}/api/product/categories`, {
+          headers: { Authorization: localStorage.getItem("token") }
+        });
+        if (data.success) {
+          setAvailableCategories(data.categories);
+        }
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+    fetchCategories();
+  }, [backendUrl]);
 
-  const filteredProducts = useMemo(() => {
-    return products.filter(p => {
-      // 1. Search Query
-      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                            (p.product_id.toString().includes(searchQuery));
-      // 2. Category
-      const matchesCategory = selectedFilters.categories.length === 0 || selectedFilters.categories.includes(p.category);
-      // 3. Price
-      const matchesPrice = !selectedFilters.priceRange ? true : (() => {
-         const finalPrice = p.price - (p.price * (p.discount_value || 0)) / 100;
-         return finalPrice >= selectedFilters.priceRange.min && finalPrice <= selectedFilters.priceRange.max;
-      })();
+  // Fetch products from backend
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoadingProducts(true);
+      try {
+        const params = {
+          search: searchQuery,
+          page: page,
+          limit: 12,
+        };
 
-      return matchesSearch && matchesCategory && matchesPrice;
-    });
-  }, [products, searchQuery, selectedFilters]);
+        if (selectedFilters.categories.length > 0) {
+          params.category = selectedFilters.categories.join(",");
+        }
+
+        if (selectedFilters.priceRange) {
+          params.minPrice = selectedFilters.priceRange.min;
+          params.maxPrice = selectedFilters.priceRange.max;
+        }
+
+        const { data } = await axios.get(`${backendUrl}/api/product/products`, { 
+          params,
+          headers: { Authorization: localStorage.getItem("token") }
+        });
+        
+        if (data.success) {
+          if (page === 1) {
+            setDashboardProducts(data.products);
+          } else {
+            setDashboardProducts((prev) => [...prev, ...data.products]);
+          }
+          setHasMore(data.currentPage < data.totalPages);
+        } else {
+          if (page === 1) setDashboardProducts([]);
+          setHasMore(false);
+        }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchProducts();
+    }, 300); // debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedFilters, page, backendUrl]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedFilters]);
 
   // Handle Search from Navbar
   useEffect(() => {
@@ -72,27 +130,34 @@ const Dashboard = () => {
     setSelectedFilters({ categories: [], priceRange: null });
   };
 
-  // Fetch image from Unsplash for each product
+  // Fetch image from Unsplash for each product (only for those missing images)
   useEffect(() => {
     const fetchImages = async () => {
-      const updatedUrls = {};
-      for (const p of products) {
-        try {
-          const response = await fetch(
-            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(p.name)}&per_page=1&client_id=${
-              import.meta.env.VITE_UNSPLASH_API_KEY
-            }`
-          );
-          const data = await response.json();
-          updatedUrls[p.product_id] = data.results[0]?.urls?.small || p.product_image;
-        } catch {
+      const updatedUrls = { ...imageUrls };
+      let updated = false;
+      for (const p of dashboardProducts) {
+        if (!updatedUrls[p.product_id] && !p.product_image) {
+          try {
+            const response = await fetch(
+              `https://api.unsplash.com/search/photos?query=${encodeURIComponent(p.name)}&per_page=1&client_id=${
+                import.meta.env.VITE_UNSPLASH_API_KEY
+              }`
+            );
+            const data = await response.json();
+            updatedUrls[p.product_id] = data.results[0]?.urls?.small || "/placeholder.png";
+            updated = true;
+          } catch {
+            updatedUrls[p.product_id] = "/placeholder.png";
+            updated = true;
+          }
+        } else if (p.product_image) {
           updatedUrls[p.product_id] = p.product_image;
         }
       }
-      setImageUrls(updatedUrls);
+      if (updated) setImageUrls(updatedUrls);
     };
-    if (products.length > 0) fetchImages();
-  }, [products]);
+    if (dashboardProducts.length > 0) fetchImages();
+  }, [dashboardProducts]);
 
   // Toggle edit mode
   const handleToggleEdit = (productId) => {
@@ -101,7 +166,7 @@ const Dashboard = () => {
 
   // Local edit updates
   const handleLocalUpdate = (productId, field, value) => {
-    setProducts((prev) =>
+    setDashboardProducts((prev) =>
       prev.map((p) =>
         p.product_id === productId
           ? {
@@ -115,7 +180,7 @@ const Dashboard = () => {
 
   // Save changes to backend
   const handleSave = (product_id) => {
-    const product = products.find((p) => p.product_id === product_id);
+    const product = dashboardProducts.find((p) => p.product_id === product_id);
     if (!product) return;
 
     updateProduct(product_id, {
@@ -129,6 +194,8 @@ const Dashboard = () => {
   const handleDelete = (product_id) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
       deleteProduct(product_id);
+      // Remove it from dashboard immediately for responsive UI
+      setDashboardProducts(prev => prev.filter(p => p.product_id !== product_id));
     }
   };
 
@@ -173,7 +240,12 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {filteredProducts.length === 0 ? (
+      {loadingProducts && dashboardProducts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <FaSpinner className="animate-spin text-orange-500 mb-4" size={40} />
+          <p className="text-gray-400 font-medium">Loading inventory...</p>
+        </div>
+      ) : dashboardProducts.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -190,7 +262,7 @@ const Dashboard = () => {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
         >
           <AnimatePresence>
-            {filteredProducts.map((p) => {
+            {dashboardProducts.map((p) => {
               const isEdit = editStates[p.product_id] || false;
               const imgSrc = imageUrls[p.product_id] || p.product_image;
               const stockQuantity = Number(p.stock_quantity);
@@ -332,6 +404,28 @@ const Dashboard = () => {
             })}
           </AnimatePresence>
         </motion.div>
+      )}
+
+      {/* Load More Button */}
+      {hasMore && dashboardProducts.length > 0 && !loadingProducts && (
+        <div className="mt-12 flex justify-center">
+          <button
+            onClick={() => setPage(p => p + 1)}
+            className="group relative px-8 py-3 bg-[#2E2E2E]/70 hover:bg-[#FF8C00]/20 border border-[#FF8C00]/30 hover:border-[#FF8C00]/80 text-orange-500 rounded-full font-bold transition-all overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <span className="relative flex items-center gap-2">
+              Load More Products
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Loading More Indicator */}
+      {loadingProducts && dashboardProducts.length > 0 && (
+        <div className="mt-12 flex justify-center">
+          <FaSpinner className="animate-spin text-orange-500" size={32} />
+        </div>
       )}
     </div>
   );

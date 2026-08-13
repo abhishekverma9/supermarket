@@ -20,15 +20,18 @@ const getAllProducts = async (req, res) => {
     let query = `
       SELECT p.product_id, p.name, p.description, p.price, p.exp_date, p.category, 
              p.stock_quantity, p.image AS product_image,
-             d.discount_id, d.description AS discount_desc, d.value AS discount_value
+             d.discount_id, d.description AS discount_desc, d.value AS discount_value,
+             COALESCE(AVG(r.rating), 0) AS average_rating,
+             COUNT(r.review_id) AS total_reviews
       FROM Product p
       LEFT JOIN Product_Discount pd ON p.product_id = pd.product_id
       LEFT JOIN Discount d ON pd.discount_id = d.discount_id
+      LEFT JOIN Reviews r ON p.product_id = r.product_id
       WHERE 1=1
     `;
     
     let countQuery = `
-      SELECT COUNT(*) as total
+      SELECT COUNT(DISTINCT p.product_id) as total
       FROM Product p
       WHERE 1=1
     `;
@@ -59,16 +62,39 @@ const getAllProducts = async (req, res) => {
     if (minPrice !== undefined && maxPrice !== undefined) {
       const priceCondition = `(p.price - (p.price * IFNULL(d.value, 0) / 100)) BETWEEN ? AND ?`;
       query += ` AND ${priceCondition}`;
+      // Note: countQuery doesn't join Discount natively here unless we add it, but since it's already complex, 
+      // let's ensure countQuery has the Discount join if we are filtering by price.
+      // Actually, since countQuery doesn't have the d join, filtering by price will fail on countQuery!
+      // Let's fix countQuery to have the joins.
+      countQuery = `
+        SELECT COUNT(DISTINCT p.product_id) as total
+        FROM Product p
+        LEFT JOIN Product_Discount pd ON p.product_id = pd.product_id
+        LEFT JOIN Discount d ON pd.discount_id = d.discount_id
+        WHERE 1=1
+      `;
+      // Re-apply existing filters to countQuery if any
+      if (search) countQuery += ` AND p.name LIKE ?`;
+      if (category) {
+        const placeholders = category.split(",").map(() => "?").join(",");
+        countQuery += ` AND p.category IN (${placeholders})`;
+      }
+
       countQuery += ` AND ${priceCondition}`;
       queryParams.push(Number(minPrice), Number(maxPrice));
       countParams.push(Number(minPrice), Number(maxPrice));
     }
+
+    // Group By MUST come after WHERE
+    query += ` GROUP BY p.product_id, d.discount_id, d.description, d.value`;
 
     // Sort order
     if (sortBy === "price_asc") {
       query += ` ORDER BY (p.price - (p.price * IFNULL(d.value, 0) / 100)) ASC`;
     } else if (sortBy === "price_desc") {
       query += ` ORDER BY (p.price - (p.price * IFNULL(d.value, 0) / 100)) DESC`;
+    } else if (sortBy === "name") {
+      query += ` ORDER BY p.name ASC`;
     } else if (sortBy === "oldest") {
       query += ` ORDER BY p.created_at ASC`;
     } else {
@@ -140,11 +166,15 @@ const getProductById = async (req, res) => {
     const [products] = await db().query(`
       SELECT p.product_id, p.name, p.description, p.price, p.exp_date, p.category, 
              p.stock_quantity, p.image AS product_image,
-             d.discount_id, d.description AS discount_desc, d.value AS discount_value
+             d.discount_id, d.description AS discount_desc, d.value AS discount_value,
+             COALESCE(AVG(r.rating), 0) AS average_rating,
+             COUNT(r.review_id) AS total_reviews
       FROM Product p
       LEFT JOIN Product_Discount pd ON p.product_id = pd.product_id
       LEFT JOIN Discount d ON pd.discount_id = d.discount_id
+      LEFT JOIN Reviews r ON p.product_id = r.product_id
       WHERE p.product_id = ?
+      GROUP BY p.product_id, d.discount_id
       LIMIT 1
     `, [id]);
 
@@ -259,18 +289,26 @@ const deleteProduct = async (req, res) => {
     // Delete image from ImageKit if exists
     if (product.image) {
       const fileName = product.image.split("/").pop();
-      // Promisify ImageKit delete
-      await new Promise((resolve, reject) => {
-        imagekit.deleteFile(fileName, (error, result) => {
-          if (error) {
-            console.log("ImageKit delete error:", error);
-            resolve(); // continue even if image deletion fails
-          } else {
-            console.log("Image deleted from ImageKit:", result);
-            resolve();
-          }
+      try {
+        // 1. Search ImageKit for the file to get its internal fileId
+        const files = await new Promise((resolve) => {
+          imagekit.listFiles({ searchQuery: `name="${fileName}"` }, (error, result) => {
+            if (error) resolve([]);
+            else resolve(result);
+          });
         });
-      });
+
+        // 2. If found, delete it using the fileId
+        if (files && files.length > 0) {
+          const fileId = files[0].fileId;
+          await new Promise((resolve) => {
+            imagekit.deleteFile(fileId, () => resolve());
+          });
+          console.log("Successfully deleted from ImageKit:", fileName);
+        }
+      } catch (err) {
+        console.log("ImageKit cleanup bypassed");
+      }
     }
     // Delete product from database
     await db().query("DELETE FROM Product WHERE product_id = ?", [product_id]);

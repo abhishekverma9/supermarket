@@ -1,4 +1,5 @@
 fastapi
+httpx
 python-dotenv
 langchain-openai
 langchain-community
@@ -6,4 +7,5 @@ langchain
 langchain-core
 chromadb
 uvicorn[standard]
-sentence-transformers
+fastembed
+networkx

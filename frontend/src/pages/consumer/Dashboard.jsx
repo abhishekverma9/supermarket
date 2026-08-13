@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, useMemo } from "react";
-import { FaShoppingCart, FaFilter, FaSortAmountDown, FaHeart, FaRegHeart, FaSearchPlus, FaSpinner } from "react-icons/fa";
+import { FaShoppingCart, FaFilter, FaSortAmountDown, FaHeart, FaRegHeart, FaSearchPlus, FaSpinner, FaStar } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
@@ -8,7 +8,7 @@ import axios from "axios";
 
 const ProductGrid = () => {
   const navigate = useNavigate();
-  const { addToCart, backendUrl } = useContext(AuthContext);
+  const { addToCart, backendUrl, isGuest, products: contextProducts } = useContext(AuthContext);
   
   const [products, setProducts] = useState([]);
   const [imageUrls, setImageUrls] = useState({});
@@ -31,8 +31,14 @@ const ProductGrid = () => {
   // Fetch available categories on mount
   useEffect(() => {
     const fetchCategories = async () => {
+      if (isGuest) {
+        setAvailableCategories(Array.from(new Set(contextProducts.map(p => p.category).filter(Boolean))));
+        return;
+      }
       try {
-        const { data } = await axios.get(`${backendUrl}/api/product/categories`);
+        const { data } = await axios.get(`${backendUrl}/api/product/categories`, {
+          headers: { Authorization: localStorage.getItem("token") }
+        });
         if (data.success) {
           setAvailableCategories(data.categories);
         }
@@ -41,12 +47,58 @@ const ProductGrid = () => {
       }
     };
     fetchCategories();
-  }, [backendUrl]);
+  }, [backendUrl, isGuest, contextProducts]);
 
-  // Fetch products from backend
+  // Fetch products from backend or use mock data for guests
   useEffect(() => {
     const fetchProducts = async () => {
       setLoadingProducts(true);
+
+      if (isGuest) {
+        // Local filtering for guests
+        const filtered = contextProducts.filter(p => {
+          const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+          const matchesCategory = selectedFilters.categories.length === 0 || selectedFilters.categories.includes(p.category);
+          const matchesPrice = !selectedFilters.priceRange ? true : (() => {
+             const finalPrice = p.discount_value ? (p.price - (p.price * p.discount_value)/100) : p.price;
+             return finalPrice >= selectedFilters.priceRange.min && finalPrice <= selectedFilters.priceRange.max;
+          })();
+          return matchesSearch && matchesCategory && matchesPrice;
+        });
+        
+        // Sorting
+        if (sortBy === "price-low") {
+          filtered.sort((a, b) => {
+            const priceA = a.discount_value ? (a.price - (a.price * a.discount_value)/100) : a.price;
+            const priceB = b.discount_value ? (b.price - (b.price * b.discount_value)/100) : b.price;
+            return priceA - priceB;
+          });
+        } else if (sortBy === "price-high") {
+          filtered.sort((a, b) => {
+            const priceA = a.discount_value ? (a.price - (a.price * a.discount_value)/100) : a.price;
+            const priceB = b.discount_value ? (b.price - (b.price * b.discount_value)/100) : b.price;
+            return priceB - priceA;
+          });
+        } else if (sortBy === "name") {
+          filtered.sort((a, b) => a.name.localeCompare(b.name));
+        }
+        
+        // Pagination (local)
+        const limit = 12;
+        const offset = (page - 1) * limit;
+        const paginated = filtered.slice(offset, offset + limit);
+
+        if (page === 1) {
+          setProducts(paginated);
+        } else {
+          setProducts(prev => [...prev, ...paginated]);
+        }
+        setHasMore(offset + limit < filtered.length);
+        setLoadingProducts(false);
+        return;
+      }
+
+      // Backend fetching for logged-in users
       try {
         const params = {
           search: searchQuery,
@@ -65,9 +117,12 @@ const ProductGrid = () => {
 
         if (sortBy === "price-low") params.sortBy = "price_asc";
         else if (sortBy === "price-high") params.sortBy = "price_desc";
-        else if (sortBy === "name") params.sortBy = "name"; // Note: Backend handles newest by default
+        else if (sortBy === "name") params.sortBy = "name";
 
-        const { data } = await axios.get(`${backendUrl}/api/product/products`, { params });
+        const { data } = await axios.get(`${backendUrl}/api/product/products`, { 
+          params,
+          headers: { Authorization: localStorage.getItem("token") }
+        });
         
         if (data.success) {
           if (page === 1) {
@@ -195,7 +250,9 @@ const ProductGrid = () => {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
   };
-
+  useEffect(() => {
+    console.log("Products updated:", products);
+  }, [products]);
   return (
     <div className="min-h-screen text-[#f0f0f5] p-4 sm:p-6">
       <FilterSidebar
@@ -220,10 +277,10 @@ const ProductGrid = () => {
             onChange={(e) => setSortBy(e.target.value)}
             className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-gray-300 focus:border-[#FF8C00]/50 focus:outline-none appearance-none cursor-pointer hover:bg-white/8 transition-colors"
           >
-            <option value="default">Sort by</option>
-            <option value="price-low">Price: Low → High</option>
-            <option value="price-high">Price: High → Low</option>
-            <option value="name">Name: A → Z</option>
+            <option className="bg-[#1a1a1a] text-gray-300" value="default">Sort by</option>
+            <option className="bg-[#1a1a1a] text-gray-300" value="price-low">Price: Low → High</option>
+            <option className="bg-[#1a1a1a] text-gray-300" value="price-high">Price: High → Low</option>
+            <option className="bg-[#1a1a1a] text-gray-300" value="name">Name: A → Z</option>
           </select>
           <button
             onClick={() => setIsFilterOpen(true)}
@@ -313,9 +370,22 @@ const ProductGrid = () => {
                     <h3 className="font-bold text-lg mb-2 text-gray-100 hover:text-orange-500 transition-colors">
                       {product.name}
                     </h3>
-                    <p className="text-gray-400 text-sm mb-4 min-h-[60px]">
+                    <p className="text-gray-400 text-sm mb-2 min-h-[40px] line-clamp-2">
                       {product.description}
                     </p>
+                    {/* Rating Section */}
+                    {product.average_rating !== undefined && (
+                      <div className="flex items-center gap-1 mb-3">
+                        <div className="flex text-sm text-[#FF8C00]">
+                          {[...Array(5)].map((_, i) => (
+                            <FaStar key={i} className={i < Math.round(Number(product.average_rating)) ? "text-yellow-400" : "text-gray-600"} />
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-400 ml-1">
+                          ({product.total_reviews} reviews)
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center mb-4">
                       {discount > 0 ? (
                         <div className="flex flex-col">

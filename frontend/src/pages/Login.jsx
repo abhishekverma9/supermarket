@@ -38,7 +38,7 @@ const LoginPage = () => {
   
   const timerRef = useRef(null);
   const navigate = useNavigate();
-  const { token, setToken, backendUrl, setRole } = useContext(AuthContext);
+  const { token, setToken, backendUrl, role, setRole, guestLogin, guestLogout } = useContext(AuthContext);
 
   const handleSocialClick = () => {
     toast.error("Something went wrong with the social sign-in provider. Please try logging in with email instead.");
@@ -53,6 +53,7 @@ const LoginPage = () => {
       });
 
       if (data.success) {
+        guestLogout();
         setToken(true);
         localStorage.setItem("role", selectedRole);
         setRole(selectedRole);
@@ -132,7 +133,8 @@ const LoginPage = () => {
         if (data.success) {
           setToken(true);
           localStorage.setItem("role", "consumer");
-          setRole("consumer");
+          guestLogout(); // Clear guest state if previously set
+          setToken(data.token);
           toast.success("Account created successfully!");
           navigate("/consumer");
         } else {
@@ -147,6 +149,7 @@ const LoginPage = () => {
           setToken(true);
           localStorage.setItem("role", selectedRole);
           setRole(selectedRole);
+          guestLogout(); // Clear guest state
           toast.success("Login successful!");
           navigate(`/${selectedRole}`);
         } else {
@@ -658,10 +661,34 @@ const LoginPage = () => {
             </p>
           )}
 
+          {/* Guest Login Divider */}
+          {authStep === "form" && (
+            <div className="flex items-center gap-3 mt-5">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#FF8C00]/40 to-transparent"></div>
+              <span className="text-xs text-gray-500 uppercase tracking-widest">or</span>
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#FF8C00]/40 to-transparent"></div>
+            </div>
+          )}
+
+          {/* Continue as Guest Button */}
+          {authStep === "form" && (
+            <button
+              type="button"
+              onClick={() => guestLogin()}
+              className="mt-3 w-full px-4 py-3 rounded-lg bg-gradient-to-r from-[#8A2BE2]/30 to-[#FF4B91]/30 hover:from-[#8A2BE2]/50 hover:to-[#FF4B91]/50 text-gray-200 border border-[#8A2BE2]/40 hover:border-[#8A2BE2]/70 font-medium shadow-md transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              Continue as Guest
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="mt-5 w-full px-4 py-3 rounded-lg bg-[#2E2E2E] hover:bg-[#3a3a3a] text-gray-200 border border-[#FF8C00]/40 transition"
+            className="mt-3 w-full px-4 py-3 rounded-lg bg-[#2E2E2E] hover:bg-[#3a3a3a] text-gray-200 border border-[#FF8C00]/40 transition"
           >
             Back
           </button>

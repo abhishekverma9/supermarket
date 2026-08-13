@@ -6,6 +6,18 @@ import { useNavigate } from "react-router-dom";
 
 export const AuthContext = createContext()
 
+// Mock products for guest mode
+const GUEST_MOCK_PRODUCTS = [
+    { product_id: 1, name: "Fresh Organic Apples", description: "Crisp and juicy organic apples, perfect for healthy snacking.", price: 120, discount: 10, stock_quantity: 50, category: "Fruits", product_image: "https://images.unsplash.com/photo-1560806887-1e4b6e0c1b3e?w=400" },
+    { product_id: 2, name: "Whole Wheat Bread", description: "Freshly baked whole wheat bread, soft and nutritious.", price: 45, discount: 0, stock_quantity: 30, category: "Bakery", product_image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400" },
+    { product_id: 3, name: "Farm Fresh Milk", description: "Pure and fresh cow's milk, pasteurized for safety.", price: 60, discount: 5, stock_quantity: 100, category: "Dairy", product_image: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400" },
+    { product_id: 4, name: "Basmati Rice (5kg)", description: "Premium long-grain basmati rice, aged for perfect flavor.", price: 350, discount: 15, stock_quantity: 25, category: "Grains", product_image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400" },
+    { product_id: 5, name: "Extra Virgin Olive Oil", description: "Cold-pressed extra virgin olive oil, rich in antioxidants.", price: 550, discount: 20, stock_quantity: 15, category: "Cooking", product_image: "https://images.unsplash.com/photo-1474979266404-7eaacdc948b6?w=400" },
+    { product_id: 6, name: "Free Range Eggs (12)", description: "Farm-fresh free range eggs, rich in protein and nutrients.", price: 90, discount: 0, stock_quantity: 40, category: "Dairy", product_image: "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=400" },
+    { product_id: 7, name: "Organic Green Tea", description: "Premium organic green tea leaves, naturally refreshing.", price: 200, discount: 10, stock_quantity: 60, category: "Beverages", product_image: "https://images.unsplash.com/photo-1556881286-fc6915169721?w=400" },
+    { product_id: 8, name: "Dark Chocolate Bar", description: "Rich 70% cocoa dark chocolate, a guilt-free indulgence.", price: 150, discount: 5, stock_quantity: 0, category: "Snacks", product_image: "https://images.unsplash.com/photo-1548907040-4baa42d10919?w=400" },
+];
+
 export const AuthContextProvider = ({ children }) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL
     const navigate = useNavigate()
@@ -14,7 +26,34 @@ export const AuthContextProvider = ({ children }) => {
     const [products, setProducts] = useState([])
     const [cart, setCart] = useState([])
     const [orders, setOrders] = useState([])
-    const [role, setRole] = useState(localStorage.getItem("role") ? localStorage.getItem("role") : "owner");
+    const [role, setRole] = useState(localStorage.getItem("role") || "owner");
+    const [isGuest, setIsGuest] = useState(localStorage.getItem("isGuest") === "true");
+
+    // Guest login — sets up fake token + mock data, no backend needed
+    const guestLogin = () => {
+        const guestToken = "guest_token_" + Date.now();
+        setToken(guestToken);
+        setRole("consumer");
+        setIsGuest(true);
+        setProducts([...GUEST_MOCK_PRODUCTS]);
+        setCart([]);
+        setOrders([]);
+        localStorage.setItem("token", guestToken);
+        localStorage.setItem("role", "consumer");
+        localStorage.setItem("isGuest", "true");
+        toast.success("Signed in as Guest");
+        navigate("/consumer");
+    };
+    useEffect(() => {
+        console.log("Products updated:", products);
+      }, [products]);
+    // Guest logout cleanup
+    const guestLogout = () => {
+        setIsGuest(false);
+        localStorage.removeItem("isGuest");
+        localStorage.removeItem("role");
+        localStorage.removeItem("token");
+    };
     const [allOrders, setAllOrders] = useState([])
     const [consumerProfile, setConsumerProfile] = useState(null)
 
@@ -25,8 +64,16 @@ export const AuthContextProvider = ({ children }) => {
             console.error("Logout error", error);
         }
         setToken(false);
-        localStorage.removeItem("role");
         setRole("");
+        setIsGuest(false);
+        setConsumerProfile(null);
+        setCart([]);
+        setOrders([]);
+        setProducts([]);
+        setAllOrders([]);
+        localStorage.removeItem("role");
+        localStorage.removeItem("isGuest");
+        localStorage.removeItem("token");
         navigate("/login");
     };
 
@@ -52,6 +99,7 @@ export const AuthContextProvider = ({ children }) => {
 
     // Fetch consumer profile
     const fetchConsumerProfile = async () => {
+        if (isGuest) return;
         try {
             const { data } = await axios.get(`${backendUrl}/api/consumer/profile`, { 
                 // headers removed
@@ -85,9 +133,10 @@ export const AuthContextProvider = ({ children }) => {
 
     // Fetch cart items
     const fetchCartItems = async () => {
+        if (isGuest) return; // Guest mode uses local state
         try {
-            const { data } = await axios.get(`${backendUrl}/api/cart/get`, {
-                headers: { token },
+            const { data } = await axios.get(`${backendUrl}/api/cart/get?t=${Date.now()}`, {
+                // headers: { token },
             });
             if (data.success) {
                 setCart(data.cart);
@@ -100,6 +149,18 @@ export const AuthContextProvider = ({ children }) => {
     };
     // Add product to cart
     const addToCart = async (product_id, quantity = 1) => {
+        if (isGuest) {
+            setCart(prev => {
+                const existing = prev.find(item => item.product_id === product_id);
+                if (existing) {
+                    return prev.map(item => item.product_id === product_id ? { ...item, quantity: item.quantity + quantity } : item);
+                }
+                const product = products.find(p => p.product_id === product_id);
+                return [...prev, { cart_id: Date.now(), product_id, quantity, name: product?.name, price: product?.price, discount: product?.discount }];
+            });
+            toast.success("Product added to cart");
+            return;
+        }
         try {
             const { data } = await axios.post(
                 `${backendUrl}/api/cart/add`,
@@ -117,6 +178,11 @@ export const AuthContextProvider = ({ children }) => {
     };
     // Update cart item quantity
     const updateCartItem = async (cart_id, quantity) => {
+        if (isGuest) {
+            setCart(prev => prev.map(item => item.cart_id === cart_id ? { ...item, quantity } : item));
+            toast.success("Cart updated");
+            return;
+        }
         try {
             const { data } = await axios.post(
                 `${backendUrl}/api/cart/update`,
@@ -135,6 +201,11 @@ export const AuthContextProvider = ({ children }) => {
 
     // Remove item from cart
     const removeCartItem = async (cart_id) => {
+        if (isGuest) {
+            setCart(prev => prev.filter(item => item.cart_id !== cart_id));
+            toast.info("Item removed");
+            return;
+        }
         try {
             const { data } = await axios.post(
                 `${backendUrl}/api/cart/remove/${cart_id}`, { cart_id }
@@ -152,9 +223,14 @@ export const AuthContextProvider = ({ children }) => {
 
     // Clear entire cart
     const clearCart = async () => {
+        if (isGuest) {
+            setCart([]);
+            toast.info("Cart cleared");
+            return;
+        }
         try {
             const { data } = await axios.post(`${backendUrl}/api/cart/clear`, {}, {
-                headers: { token },
+                // headers: { token },
             });
             if (data.success) {
                 toast.info("Cart cleared");
@@ -169,6 +245,21 @@ export const AuthContextProvider = ({ children }) => {
 
     // Checkout
     const checkout = async (deliveryDetails) => {
+        if (isGuest) {
+            const newOrder = {
+                order_id: Date.now(),
+                items: [...cart],
+                total: cart.reduce((sum, item) => sum + (item.price - (item.price * (item.discount || 0)) / 100) * item.quantity, 0),
+                status: "Processing",
+                order_date: new Date().toISOString(),
+                ...deliveryDetails,
+            };
+            setOrders(prev => [newOrder, ...prev]);
+            setCart([]);
+            toast.success("Order placed successfully (Guest Mode)");
+            navigate("/consumer/orders");
+            return;
+        }
         try {
             const { data } = await axios.post(
                 `${backendUrl}/api/cart/checkout`,
@@ -192,8 +283,12 @@ export const AuthContextProvider = ({ children }) => {
         }
     };
     const fetchAllProducts = async () => {
+        if (isGuest) {
+            setProducts([...GUEST_MOCK_PRODUCTS]);
+            return;
+        }
         try {
-            const { data } = await axios.get(backendUrl + '/api/product/products', { params: { limit: 1000 } })
+            const { data } = await axios.get(`${backendUrl}/api/product/products?t=${Date.now()}`, { params: { limit: 1000 } })
             if (data.success) {
                 setProducts(data.products)
             } else {
@@ -204,8 +299,9 @@ export const AuthContextProvider = ({ children }) => {
         }
     }
     const fetchOrders = async () => {
+        if (isGuest) return; // Guest orders are managed locally
         try {
-            const { data } = await axios.get(`${backendUrl}/api/order/orders`, { 
+            const { data } = await axios.get(`${backendUrl}/api/order/orders?t=${Date.now()}`, { 
                 // headers removed
             });
             if (data.success) {
@@ -215,6 +311,41 @@ export const AuthContextProvider = ({ children }) => {
             }
         } catch (err) {
             toast.error(err.response?.data?.message || err.message);
+        }
+    };
+    
+    // Fetch product reviews
+    const fetchProductReviews = async (product_id) => {
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/product/${product_id}/reviews`);
+            if (data.success) {
+                return data.reviews;
+            }
+            return [];
+        } catch (err) {
+            console.error(err);
+            return [];
+        }
+    };
+
+    // Add a product review
+    const addProductReview = async (product_id, rating, comment) => {
+        if (isGuest) {
+            toast.error("Guests cannot leave reviews");
+            return false;
+        }
+        try {
+            const { data } = await axios.post(`${backendUrl}/api/product/${product_id}/reviews`, { rating, comment });
+            if (data.success) {
+                toast.success(data.message);
+                return true;
+            } else {
+                toast.error(data.message);
+                return false;
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || err.message);
+            return false;
         }
     };
     const updateProduct = async (product_id, updatedFields) => {
@@ -257,6 +388,7 @@ export const AuthContextProvider = ({ children }) => {
         return `${day}/${month}/${year}`;
     };
     const fetchAllOrderForEmp = async () => {
+        if (isGuest) return;
         try {
             const { data } = await axios.get(backendUrl + `/api/employee/orders`);
             if (data.success) {
@@ -302,7 +434,7 @@ export const AuthContextProvider = ({ children }) => {
     }, [token,role])
 
     const value = {
-        token, setToken, isLoadingAuth, fetchAllProducts, backendUrl, products, setProducts, addToCart, updateCartItem, removeCartItem, checkout, clearCart, cart, fetchCartItems, orders, role, setRole, updateProduct, deleteProduct, formatDate, allOrders, consumerProfile, updateConsumerProfile, logout
+        token, setToken, isLoadingAuth,  fetchAllProducts, backendUrl, products, setProducts, addToCart, updateCartItem, removeCartItem, checkout, clearCart, cart, fetchCartItems, orders, role, setRole, updateProduct, deleteProduct, formatDate, allOrders, isGuest, guestLogin, guestLogout, fetchProductReviews, addProductReview, consumerProfile, updateConsumerProfile, logout
     }
     return (
         <AuthContext.Provider value={value}>

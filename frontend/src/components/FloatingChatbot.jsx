@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 // Replaced FaSparkles with FaMagic, which is available in the 'fa' package.
 import { FaComments, FaTimes, FaPaperPlane, FaRobot, FaMagic } from "react-icons/fa";
 
+const CHATBOT_API_URL =
+  (import.meta.env.VITE_CHATBOT_API_URL || "http://localhost:8000").replace(/\/+$/, "");
+
 const FloatingChatbot = ({ isOpen: externalIsOpen, onClose }) => {
   const [isOpen, setIsOpen] = useState(externalIsOpen || false);
   const [messages, setMessages] = useState([
@@ -63,10 +66,14 @@ const FloatingChatbot = ({ isOpen: externalIsOpen, onClose }) => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8000/chat", {
+      const authToken = localStorage.getItem("token");
+      const response = await fetch(`${CHATBOT_API_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: userText }),
+        body: JSON.stringify({
+          query: userText,
+          ...(authToken ? { auth_token: authToken } : {}),
+        }),
       });
 
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -243,7 +250,7 @@ const FloatingChatbot = ({ isOpen: externalIsOpen, onClose }) => {
                   onKeyPress={handleKeyPress}
                   placeholder="Ask about products..."
                   disabled={loading}
-                  className="flex-1 bg-transparent text-sm text-white placeholder-gray-400 outline-none disabled:opacity-50"
+                  className="flex-1 bg-transparent text-sm text-white placeholder-gray-400 outline-none border-none focus:outline-none focus:ring-0 focus:border-transparent disabled:opacity-50"
                 />
                 <motion.button
                   onClick={handleSend}
