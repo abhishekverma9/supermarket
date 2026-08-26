@@ -1,15 +1,24 @@
 import { Navigate, Outlet } from "react-router-dom";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
+import { FaSpinner } from "react-icons/fa";
 
 /**
  * ProtectedRoute
  * @param {Array<string>} roles - Allowed roles for this route
  */
 const ProtectedRoute = ({ roles }) => {
-  // Get auth data from localStorage (mock)
-  const auth = localStorage.getItem("token")
-  const role = localStorage.getItem("role")
+  const { token, role, isLoadingAuth } = useContext(AuthContext);
 
-  if (!auth) {
+  if (isLoadingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
+        <FaSpinner className="animate-spin text-orange-500 text-4xl" />
+      </div>
+    );
+  }
+
+  if (!token) {
     // Not logged in → redirect to login
     return <Navigate to="/login" replace />;
   }

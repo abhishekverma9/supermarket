@@ -5,15 +5,15 @@ import imagekit from "../config/imageKit.js";
 const getProfile = async (req, res) => {
   try {
     const userId = req.userId;
-    const [rows] = await db().query("SELECT consumer_id, first_name, last_name, email, phone, loyalty_points, house_no, street, building, profile_photo FROM consumers WHERE consumer_id = ?", [userId]);
+    const [rows] = await db().query("SELECT consumer_id, first_name, last_name, email, phone, loyalty_points, house_no, street, building, profile_photo FROM Consumers WHERE consumer_id = ?", [userId]);
 
     if (rows.length === 0) {
-      return res.json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
     res.json({ success: true, user: rows[0] });
   } catch (error) {
     console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch profile" });
   }
 };
 
@@ -23,9 +23,9 @@ const updateProfile = async (req, res) => {
     const userId = req.userId;
     const { first_name, last_name, phone, house_no, street, building } = req.body;
 
-    const [existing] = await db().query("SELECT * FROM consumers WHERE consumer_id = ?", [userId]);
+    const [existing] = await db().query("SELECT * FROM Consumers WHERE consumer_id = ?", [userId]);
     if (existing.length === 0) {
-      return res.json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     let profilePhotoUrl = existing[0].profile_photo;
@@ -38,7 +38,7 @@ const updateProfile = async (req, res) => {
       profilePhotoUrl = result.url;
     }
     await db().query(
-      `UPDATE consumers SET first_name=?, last_name=?, phone=?, house_no=?, street=?, building_or_flat=?, profile_photo=? WHERE consumer_id=?`,
+      `UPDATE Consumers SET first_name=?, last_name=?, phone=?, house_no=?, street=?, building_or_flat=?, profile_photo=? WHERE consumer_id=?`,
       [
         first_name || existing[0].first_name,
         last_name || existing[0].last_name,
@@ -53,7 +53,7 @@ const updateProfile = async (req, res) => {
     res.json({success: true,message: "Profile updated successfully",profile_photo: profilePhotoUrl})
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Failed to update profile" });
   }
 };
 

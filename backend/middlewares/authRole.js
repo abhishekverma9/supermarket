@@ -6,9 +6,9 @@ import jwt from "jsonwebtoken";
  */
 const authRole = (...allowedRoles) => {
   return (req, res, next) => {
-    const token = req.headers.token; // token from header
+    const token = req.cookies?.token || req.headers?.token; // token from cookie or header
     if (!token) {
-      return res.json({ success: false, message: "Not authorized. Please login." });
+      return res.status(401).json({ success: false, message: "Not authorized. Please login." });
     }
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -16,12 +16,12 @@ const authRole = (...allowedRoles) => {
       req.userId = decoded.id;
       req.userRole = decoded.role;
       if (!allowedRoles.includes(decoded.role)) {
-        return res.json({ success: false, message: "Access denied." });
+        return res.status(403).json({ success: false, message: "Access denied." });
       }
       next();
     } catch (error) {
       console.error(error);
-      return res.json({ success: false, message: "Invalid or expired token." });
+      return res.status(401).json({ success: false, message: "Invalid or expired token." });
     }
   };
 };

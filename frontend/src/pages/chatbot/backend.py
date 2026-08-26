@@ -1,0 +1,415 @@
+"""
+Standard RAG Backend with Groq API
+FastAPI server that handles simple retrieval (Vector DB) and final answer generation.
+"""
+
+import os
+import sys
+
+# Limit threads to reduce memory footprint on Render free tier
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
+import asyncio
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Optional
+from datetime import datetime
+
+# Load environment variables
+from dotenv import load_dotenv
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_script_dir, ".env"))
+load_dotenv()
+
+# ------------------------------------------------------------------------------
+# LangChain Integrations
+# ------------------------------------------------------------------------------
+
+try:
+    from langchain_openai import ChatOpenAI
+    from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+    from langchain_community.vectorstores import Chroma
+    from langchain_community.document_loaders import TextLoader
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    from langchain_core.messages import HumanMessage, SystemMessage
+    DEEPSEEK_API_AVAILABLE = True
+except ImportError:
+    DEEPSEEK_API_AVAILABLE = False
+    print("Warning: Install dependencies with: pip install langchain-openai langchain-community langchain-chroma fastembed")
+
+# ------------------------------------------------------------------------------
+# FastAPI Setup
+# ------------------------------------------------------------------------------
+
+app = FastAPI(title="Standard RAG API with Groq")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ------------------------------------------------------------------------------
+# Pydantic Schemas
+# ------------------------------------------------------------------------------
+
+class QueryRequest(BaseModel):
+    query: str
+    auth_token: Optional[str] = None
+
+class RecommendRequest(BaseModel):
+    auth_token: Optional[str] = None
+
+class ChatMessage(BaseModel):
+    type: str  # "user", "agent", "thought"
+    content: str
+    timestamp: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    messages: List[ChatMessage]
+    final_answer: str
+
+# ------------------------------------------------------------------------------
+# Database: Vector (Chroma) - Loads data.txt
+# ------------------------------------------------------------------------------
+
+def init_vector_db():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    DATA_FILE = os.path.join(script_dir, "data.txt")
+    
+    if os.path.exists(DATA_FILE):
+        print(f"Loading documents from '{DATA_FILE}'...")
+        loader = TextLoader(DATA_FILE, encoding="utf-8")
+        docs = loader.load()
+    else:
+        print(f"Warning: '{DATA_FILE}' not found. Creating dummy data.")
+        from langchain_core.documents import Document
+        docs = [Document(page_content="No data.txt found. Please add data.txt to the backend folder.")]
+
+    # Chunking
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    chunks = splitter.split_documents(docs)
+    
+    # Embeddings
+    from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+    embeddings = FastEmbedEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+    )
+    
+    # Fix file path syntax
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    db_dir = os.path.join(script_dir, "chroma_db_standard")
+    
+    # Store
+    store = Chroma.from_documents(
+        documents=chunks, 
+        embedding=embeddings, 
+        collection_name="standard_rag_groq", 
+        persist_directory=db_dir
+    )
+    
+    # Return retriever (k=5 for broader context)
+    return store.as_retriever(search_kwargs={"k": 5})
+
+# Initialize Global Retriever
+vector_retriever = init_vector_db()
+
+_api_status_cache = {"ok": None, "error": None}
+
+# ------------------------------------------------------------------------------
+# LLM Setup (Groq API) — primary; Chroma/data.txt fallback when API fails
+# ------------------------------------------------------------------------------
+
+def has_groq_api_key() -> bool:
+    return bool(os.environ.get("GROQ_API_KEY", "").strip())
+
+
+def get_llm(temperature: float = 0.0):
+    if not DEEPSEEK_API_AVAILABLE:
+        raise ValueError("LangChain dependencies not installed.")
+        
+    api_key = os.environ.get("GROQ_API_KEY") 
+    if not api_key:
+        raise ValueError("GROQ_API_KEY environment variable not set.")
+
+    return ChatOpenAI(
+        model="llama-3.1-8b-instant",
+        temperature=temperature,
+        api_key=api_key,
+        base_url="https://api.groq.com/openai/v1"
+    )
+
+
+def check_groq_api(force: bool = False) -> bool:
+    if not has_groq_api_key() or not DEEPSEEK_API_AVAILABLE:
+        _api_status_cache["ok"] = False
+        _api_status_cache["error"] = "GROQ_API_KEY missing or langchain-openai not installed"
+        return False
+    if not force and _api_status_cache["ok"] is not None:
+        return bool(_api_status_cache["ok"])
+    try:
+        llm = get_llm(temperature=0.0)
+        llm.invoke([HumanMessage(content="Reply with OK only.")])
+        _api_status_cache["ok"] = True
+        _api_status_cache["error"] = None
+        return True
+    except Exception as e:
+        _api_status_cache["ok"] = False
+        _api_status_cache["error"] = str(e)
+        return False
+
+
+def invalidate_api_cache():
+    _api_status_cache["ok"] = None
+    _api_status_cache["error"] = None
+
+# ------------------------------------------------------------------------------
+# Core Functions
+# ------------------------------------------------------------------------------
+
+async def simple_rag_search(query: str, auth_token: Optional[str] = None) -> tuple[str, str]:
+    """
+    Retrieval levels:
+    1) Live API (Graph RAG + vector on MySQL via Node REST)
+    2) Offline Graph RAG on data.txt
+    3) Local Chroma vector fallback
+    Returns (context, source).
+    """
+    from live_data import is_supermarket_api_configured, live_vector_search
+    from graph_rag import offline_catalog_graph_search
+
+    if is_supermarket_api_configured():
+        live_context, live_err = await live_vector_search(query, auth_token, k=5)
+        if live_context:
+            src = "live_graph" if "[Live Graph RAG" in live_context else "live_api"
+            return live_context, src
+        if live_err:
+            print(f"Live retrieval fallback: {live_err}")
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(script_dir, "data.txt")
+    graph_ctx, graph_err = offline_catalog_graph_search(query, data_path, max_chunks=5)
+    if graph_ctx:
+        return graph_ctx, "local_graph"
+    if graph_err:
+        print(f"Offline Graph RAG fallback: {graph_err}")
+
+    if not vector_retriever:
+        return "Database not initialized.", "local"
+
+    docs = await vector_retriever.ainvoke(query)
+    if not docs:
+        return "No relevant documents found.", "local"
+
+    context_text = "[Chroma vector fallback]\n\n" + "\n\n---\n\n".join(
+        [d.page_content for d in docs]
+    )
+    return context_text, "local"
+
+def fallback_generate_answer(query: str, context: str) -> str:
+    if not context.strip():
+        return (
+            "I couldn't find matching products in the local catalog (data.txt / ChromaDB). "
+            "Set GROQ_API_KEY for AI-powered answers."
+        )
+    preview = context if len(context) <= 2000 else context[:2000] + "\n\n...(truncated)"
+    return (
+        "Here are the closest matches from the local product catalog "
+        "(Groq API unavailable):\n\n"
+        f"{preview}\n\n"
+        "_Add a valid GROQ_API_KEY for natural-language summaries._"
+    )
+
+
+async def generate_answer(query: str, context: str) -> str:
+    """Generates the final answer using the retrieved context."""
+    llm = get_llm(temperature=0.5)
+    
+    prompt = f"""You are a helpful Supermarket Assistant.
+Answer the user's question based ONLY on the context provided below.
+
+Context (Product Data):
+---
+{context}
+---
+
+User Question: {query}
+
+Guidelines:
+1. If the user asks for a product, mention its Price and Stock if available.
+2. If the answer is not in the context, politely say you couldn't find that information.
+3. Keep the tone friendly and helpful.
+
+Answer:"""
+    
+    response = llm.invoke([HumanMessage(content=prompt)])
+    return response.content
+
+# ------------------------------------------------------------------------------
+# API Endpoints
+# ------------------------------------------------------------------------------
+
+@app.get("/")
+async def root():
+    api_ok = check_groq_api()
+    return {
+        "message": "Standard RAG API is running",
+        "model": "llama-3.1-8b-instant",
+        "mode": "api" if api_ok else "database_fallback",
+    }
+
+
+@app.get("/health")
+async def health():
+    from live_data import check_live_api, is_supermarket_api_configured
+
+    api_ok = check_groq_api(force=True)
+    from graph_rag import get_graph_health
+
+    live_status = await check_live_api()
+    data_mode = "live_api" if live_status.get("reachable") else (
+        "local_fallback" if not is_supermarket_api_configured() else "live_api_unavailable"
+    )
+    return {
+        "status": "healthy" if api_ok or vector_retriever or live_status.get("reachable") else "unhealthy",
+        "llm_mode": "api" if api_ok else "database_fallback",
+        "data_mode": data_mode,
+        "groq_api": "connected" if api_ok else "unavailable",
+        "groq_api_error": _api_status_cache.get("error"),
+        "live_supermarket_api": live_status,
+        "graph_rag": get_graph_health(),
+        "local_vector_db": vector_retriever is not None,
+    }
+
+
+@app.post("/recommend/{product_id}")
+async def recommend_similar_products(product_id: int, req: RecommendRequest):
+    """Returns a list of recommended product IDs based on vector similarity."""
+    from live_data import fetch_live_products, _get_live_retriever, product_to_document
+
+    products = await fetch_live_products(req.auth_token)
+    target_product = next((p for p in products if p.get("product_id") == product_id), None)
+    
+    if not target_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    query_text = product_to_document(target_product).page_content
+    
+    # Get retriever (k=6 so we can exclude the original product)
+    retriever = await _get_live_retriever(req.auth_token, k=6)
+    if not retriever:
+        raise HTTPException(status_code=500, detail="Live retriever not available")
+
+    docs = await retriever.ainvoke(query_text)
+    
+    recommended_ids = []
+    for d in docs:
+        pid = d.metadata.get("product_id")
+        if pid and pid != product_id and pid not in recommended_ids:
+            recommended_ids.append(pid)
+            
+    # Also fetch full product objects to return
+    recommended_products = [p for p in products if p.get("product_id") in recommended_ids][:5]
+    
+    return {
+        "success": True,
+        "product_id": product_id,
+        "recommendations": recommended_products
+    }
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(req: QueryRequest):
+    messages: List[ChatMessage] = []
+    use_api = check_groq_api()
+    from live_data import is_supermarket_api_configured
+
+    mode_label = "Groq API + catalog" if use_api else "local catalog only"
+    try:
+        messages.append(ChatMessage(
+            type="thought",
+            content=f"🔍 Searching product catalog ({mode_label})...",
+            timestamp=datetime.now().isoformat()
+        ))
+
+        context, data_source = await simple_rag_search(req.query, req.auth_token)
+        if data_source in ("live_api", "live_graph"):
+            label = "Graph RAG + live API" if data_source == "live_graph" else "live API + vector search"
+            messages.append(ChatMessage(
+                type="thought",
+                content=f"🌐 Using live supermarket database ({label})",
+                timestamp=datetime.now().isoformat(),
+            ))
+        elif data_source == "local_graph":
+            messages.append(ChatMessage(
+                type="thought",
+                content="🕸️ Offline Graph RAG on local product catalog",
+                timestamp=datetime.now().isoformat(),
+            ))
+        elif is_supermarket_api_configured():
+            messages.append(ChatMessage(
+                type="thought",
+                content="📁 Live API unavailable — using local data.txt / ChromaDB",
+                timestamp=datetime.now().isoformat(),
+            ))
+
+        preview = (context[:200] + '...') if len(context) > 200 else context
+        messages.append(ChatMessage(
+            type="thought",
+            content=f"📄 Data Found:\n{preview}",
+            timestamp=datetime.now().isoformat()
+        ))
+        
+        messages.append(ChatMessage(
+            type="thought",
+            content="✨ Generating final answer...",
+            timestamp=datetime.now().isoformat()
+        ))
+        
+        if use_api:
+            try:
+                final = await generate_answer(req.query, context)
+            except Exception as e:
+                invalidate_api_cache()
+                final = fallback_generate_answer(req.query, context)
+                messages.append(ChatMessage(
+                    type="thought",
+                    content=f"⚠ Groq API failed ({e}). Returning catalog matches only.",
+                    timestamp=datetime.now().isoformat()
+                ))
+        else:
+            final = fallback_generate_answer(req.query, context)
+        
+        return ChatResponse(messages=messages, final_answer=final)
+
+    except Exception as e:
+        error_message = f"❌ Error: {str(e)}"
+        print(error_message)
+        
+        messages.append(ChatMessage(
+            type="thought",
+            content=error_message,
+            timestamp=datetime.now().isoformat()
+        ))
+        return ChatResponse(messages=messages, final_answer="Sorry, I encountered an error processing your request.")
+
+# ------------------------------------------------------------------------------
+# Run Server
+# ------------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import uvicorn
+    print("\n" + "="*60)
+    print("Starting Standard RAG Server (No SQL)")
+    print("="*60)
+    print("Optional: SUPERMARKET_API_URL + token for live MySQL product data")
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    print(f"Server will be live at: http://localhost:{port}")
+    print("="*60 + "\n")
+    uvicorn.run(app, host="0.0.0.0", port=port)
